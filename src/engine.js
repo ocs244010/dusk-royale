@@ -13,8 +13,8 @@ function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1
 const SIZES={small:{W:66,H:48,houses:11,gas:1,fuse:1,dawn:10*60,hills:5,cars:5,players:6},medium:{W:90,H:64,houses:18,gas:2,fuse:2,dawn:12*60,hills:8,cars:8,players:10},large:{W:116,H:82,houses:27,gas:3,fuse:3,dawn:15*60,hills:12,cars:11,players:16}};
 let DIST=[];const DNAME={yard:'コンテナ置き場',pad:'発着場',pit:'採掘場',post:'防衛陣地'};
 let HOUSES=[],LAMPS=[],CARS=[],COVER=[],VANT,META,BASE,HG,HGW,HGH;const HOFF=40;
-function genMap(size){CFG=SIZES[size];W=CFG.W;H=CFG.H;DAWN=CFG.dawn;
-  const seed=(Date.now()%100000)|0;for(let a=0;a<30;a++)if(tryGen(seed+a*7919,size))break;buildHeights(seed)}
+function genMap(size,seed0){CFG=SIZES[size];W=CFG.W;H=CFG.H;DAWN=CFG.dawn;
+  const seed=seed0!==undefined?seed0:(Date.now()%100000)|0;for(let a=0;a<30;a++)if(tryGen(seed+a*7919,size))break;buildHeights(seed)}
 function tryGen(seed,size){
   const g=Array.from({length:H},()=>Array(W).fill('.'));const rnd=mulberry(seed);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<2||y<2||x>=W-2||y>=H-2)g[y][x]='T';

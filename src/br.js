@@ -578,7 +578,7 @@ function bestSlot(a){let b=-1,t=-1;a.slots.forEach((s,i)=>{if(s&&wScore(s)>t){t=
 // ---------- damage ----------
 const feed=[];function killFeed(t){feed.unshift({t,life:6});if(feed.length>5)feed.pop();renderFeed()}
 function renderFeed(){$('feed').innerHTML=feed.map(f=>`<div>${f.t}</div>`).join('')}
-function damage(v,dmg,by,wname,head,raw){if(!v.alive||S.over)return null;if(!isFinite(dmg))return null;let abs=0,broke=false;
+function damage(v,dmg,by,wname,head,raw){if(!v.alive||(S.over&&!NET.on)||NET.done)return null;if(!isFinite(dmg))return null;let abs=0,broke=false;
   if(!raw){if(head&&v.helmLv>0){const ab=Math.min(v.helm,dmg*HELM[v.helmLv].abs);v.helm-=ab;dmg-=ab;abs=ab;if(v.helm<=.5){v.helm=0;v.helmLv=0;broke=true}}
     else if(!head&&v.armorLv>0){const ab=Math.min(v.armor,dmg*VEST[v.armorLv].abs);v.armor-=ab;dmg-=ab;abs=ab;if(v.armor<=.5){v.armor=0;v.armorLv=0;broke=true}}}
   v.hp-=dmg;if(!isFinite(v.hp))v.hp=0;if(by)by.dmgDone+=dmg;if(v.me&&by)ME.dmgFrom[by.i]=(ME.dmgFrom[by.i]||0)+dmg;if(by&&by.me)ME.dmgTo[v.i]=(ME.dmgTo[v.i]||0)+dmg;
@@ -789,6 +789,7 @@ function findCover(b,e){let best=null,bs=1e9;const ea=Math.atan2(b.z-e.z,b.x-e.x
 function goCover(b,e){if((b.covCd||0)>S.t)return false;b.covCd=S.t+4;const c=findCover(b,e);if(!c)return false;
   if(!botGoto(b,c.x,c.z,()=>{b.inCov=S.t}))return false;b.mode='cover';b.inCov=0;b.crouch=false;b.coverN=(b.coverN||0)+1;return true}
 function botUpdate(b,dt){if(!b.alive)return;
+  if(b.remote||NET.client){b.flashT-=dt;if(b.flashT<=0&&b.mesh)b.mesh.fl.visible=false;return}
   b.cool-=dt;b.flashT-=dt;if(b.flashT<=0)b.mesh.fl.visible=false;
   if(b.reloadT>0){b.reloadT-=dt;if(b.reloadT<=0)finishReload(b)}
   if(outZone(b)){b.zoneT=(b.zoneT||0)+dt;if(b.zoneT>=1){b.zoneT=0;damage(b,Z.dps,null,'安全地帯の外で倒れた',false,true)}}
@@ -871,10 +872,10 @@ function botVisuals(now,dt){for(const b of BOTS){const d=Math.hypot(b.x-ME.x,b.z
   const mvx=b.x-(b._px??b.x),mvz=b.z-(b._pz??b.z);b._px=b.x;b._pz=b.z;if(!vis)continue;
   // far bots are re-posed less often
   if(b.alive&&d>40&&((b.i+(S.frameN||0))%3))continue;const w=wpn(b);
-  poseRig(b.mesh,{x:b.x,y:AY(b),z:b.z,face:b.face,dead:!b.alive,stance:b.crouch?'crouch':'stand',aim:b.mode==='fight'||(b.mode==='cover'&&b.peek),armed:w?w.id:null,rar:w?w.r:0,
+  poseRig(b.mesh,{x:b.x,y:AY(b),z:b.z,face:b.face,dead:!b.alive,stance:b.prone?'prone':b.crouch?'crouch':'stand',aim:b.mode==='fight'||(b.mode==='cover'&&b.peek),armed:w?w.id:null,rar:w?w.r:0,
     moving:b.moving,walk:b.walk,heal:b.healT>0,run:!!b.running,armorLv:b.armorLv,helmLv:b.helmLv,mvx,mvz,dt:d>40?dt*3:dt})}}
 // stance of any actor: the player can stand, crouch (also while sliding) or lie prone; bots stand or crouch
-const stanceOf=a=>a.me?(S.prone?'prone':(S.crouch||S.slide)?'crouch':'stand'):(a.crouch?'crouch':'stand');
+const stanceOf=a=>a.me?(S.prone?'prone':(S.crouch||S.slide)?'crouch':'stand'):(a.prone?'prone':a.crouch?'crouch':'stand');
 
 // ---------- player ----------
 function myPickCandidate(){let best=null,bd=1e9;const fx=-Math.sin(ME.yaw),fz=-Math.cos(ME.yaw);
@@ -985,7 +986,11 @@ function drawMap(){const s=Math.min(240/W,176/H);
 S={};
 function startGame(){
   try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
-  genMap(SIZE);grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();
+  if(NET.client)return;NET.live=false;const seed=(Math.random()*1e9)|0;setupWorld(seed);
+  seedLoot();seedCoverLoot();initZone();if(NET.host)netSendInit(seed);
+  showDrop()}
+function setupWorld(seed){
+  ME=null;genMap(SIZE,seed);grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();
   S={recap:[],t:0,over:false,cans:[],pings:[],hurt:0,hitMark:0,killMark:0,recoil:0,ads:false,moveAmt:0,flashT:0,vy:0,jumpY:0,useT:null,vault:null};
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];
     if(c==='d')doors.set(kk(x,y),{x,y,open:Math.random()<.35,barr:false,broken:false});
@@ -996,9 +1001,7 @@ function startGame(){
     else if(c==='B')phone={x,y};
     if(robberPass(x,y)&&!'dw'.includes(grid[y][x]))floors.push({x,y})}
   police={...META.police};
-  buildWorld();police.mesh.visible=false;mapBase=null;feed.length=0;renderFeed();
-  seedLoot();seedCoverLoot();initZone();
-  showDrop()}
+  buildWorld();police.mesh.visible=false;mapBase=null;feed.length=0;renderFeed()}
 // ---------- choose where to land ----------
 function validSpot(x,z){const tx=TX(x),ty=TX(z);if(tx<3||ty<3||tx>W-4||ty>H-4)return null;
   let best=null,bd=1e9;for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const t={x:tx+dx,y:ty+dy};if(!'.=f'.includes(tile(t.x,t.y)))continue;const c=ctr(t);if(!free(c.x,c.z,.35))continue;
@@ -1026,32 +1029,35 @@ function showDrop(){const base=document.createElement('canvas'),px=Math.min(440,
     (()=>{const hh=Math.max(0,Math.min(1,(heightAt(x*T+T/2,y*T+T/2)+2)/7));return`rgb(${78+hh*50|0},${48+hh*34|0},${40+hh*26|0})`})();b.fillRect(x*s,y*s,s+.5,s+.5)}
   DROP={base,pick:null,t:20};
   $('card').innerHTML=`<h1><small>CHOOSE YOUR DROP</small>降下地点を選ぶ</h1>
-    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区で、枠付きは構造物、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、ほかの${CFG.players-1}人は基地や地区のあちこちに散らばって降りる。</p>
+    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区で、枠付きは構造物、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、${NET.on?'仲間以外の':'ほかの'}${CFG.players-1-(NET.on?NET.lobby.length-1:0)}人は基地や地区のあちこちに散らばって降りる。</p>
     <canvas id="dropmap" width="${base.width}" height="${base.height}" style="width:100%;height:auto;border-radius:4px;cursor:crosshair;touch-action:none"></canvas>
     <p id="dropinfo" style="font-size:13px;color:var(--dim)">あと <b id="dropt">20</b> 秒で自動で降りる</p>
     <button class="btn" id="dropgo" disabled>ここに降りる</button><button class="btn ghost" id="droprand">おまかせで降りる</button>`;
   const cv=$('dropmap');cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W*T,z=(e.clientY-r.top)/r.height*H*T;
     const sp=validSpot(x,z);if(!sp){$('dropinfo').textContent='そこには降りられない。道や地面、建物の中を選んで';return}DROP.pick=sp;$('dropgo').disabled=false;
     const h=insideHouse(sp.x,sp.z);$('dropinfo').innerHTML=(h?'建物の中に降りる。':'外に降りる。')+`あと <b id="dropt">${Math.ceil(DROP.t)}</b> 秒で自動で降りる`;drawDrop()});
-  $('dropgo').onclick=()=>launch(DROP.pick);$('droprand').onclick=()=>launch(null);drawDrop();
-  DROP.timer=setInterval(()=>{if(!DROP)return;DROP.t-=1;const el=$('dropt');if(el)el.textContent=Math.max(0,Math.ceil(DROP.t));if(DROP.t<=0)launch(DROP.pick)},1000)}
+  $('dropgo').onclick=()=>dropDone(DROP.pick);$('droprand').onclick=()=>dropDone(null);drawDrop();
+  DROP.timer=setInterval(()=>{if(!DROP)return;DROP.t-=1;const el=$('dropt');if(el)el.textContent=Math.max(0,Math.ceil(DROP.t));if(DROP.t<=0)dropDone(DROP.pick,true)},1000)}
 function launch(pick){if(!DROP)return;clearInterval(DROP.timer);DROP=null;
   ALL=[];BOTS=[];const n=CFG.players,spots=[];
   const myspot=pick||(()=>{for(let t=0;t<500;t++){const h=HOUSES[(Math.random()*HOUSES.length)|0];const c=validSpot((h.x+h.w/2)*T,(h.y+h.h+1.5)*T);if(c)return c}return ctr(floors[0])})();
   spots.push(myspot);
+  const humans=NET.host?NET.lobby.slice(1):[];for(const h of humans){let c=h.pick?validSpot(h.pick.x,h.pick.z):null;for(let t=0;t<500&&!c;t++){const hh=HOUSES[(Math.random()*HOUSES.length)|0];c=validSpot((hh.x+hh.w/2)*T,(hh.y+hh.h+1.5)*T)}spots.push(c||ctr(floors[0]))}
   // bots: spread over the houses first, then the open ground; keep a little distance from each other and from the player
   const hs=HOUSES.slice().sort(()=>Math.random()-.5);let hi=0;
   for(let t=0;t<8000&&spots.length<n;t++){let c;
     if(t<3000){const h=hs[hi++%hs.length];const ang=Math.random()*6.28,r=(Math.max(h.w,h.h)/2+1.5+Math.random()*2)*T;c=validSpot((h.x+h.w/2)*T+Math.cos(ang)*r,(h.y+h.h/2)*T+Math.sin(ang)*r)}
     else{const f=floors[(Math.random()*floors.length)|0];c='.='.includes(tile(f.x,f.y))?ctr(f):null}
     if(!c)continue;const md=t<2500?18:t<5500?13:7;if(spots.some((p,i)=>Math.hypot(p.x-c.x,p.z-c.z)<(i===0?Math.max(md,20):md)))continue;spots.push(c)}
-  spots.forEach((c,i)=>{const a=newActor(i,i===0,c.x,c.z);a.face=a.yaw=Math.random()*6.28;giveWeapon(a,'pistol');a.ammo.light=24;ALL.push(a);if(i===0)ME=a;else BOTS.push(a)});
+  spots.forEach((c,i)=>{const a=newActor(i,i===0,c.x,c.z);a.face=a.yaw=Math.random()*6.28;giveWeapon(a,'pistol');a.ammo.light=24;ALL.push(a);if(i===0)ME=a;else BOTS.push(a);
+    if(NET.host){if(i===0)a.name=NET.name;else if(i<=humans.length){const h=humans[i-1];a.name=h.name;a.remote=true;a.conn=h.conn;a.human=true;h.conn.actor=a}}});
+  if(NET.host)netSendGo();
   ME.r=.3;buildVm('pistol');
-  $('stage').classList.add('playing');$('overlay').hidden=true;resize();hud();say(`${n}人のバトルロイヤル開始。建物を探して強い武器を拾え`,3.5);lockPointer()}
+  $('stage').classList.add('playing');$('overlay').hidden=true;resize();hud();say(`${n}人のバトルロイヤル開始。${NET.on?'仲間も敵。':''}建物を探して強い武器を拾え`,3.5);lockPointer()}
 function end(win){if(S.over)return;S.over=true;$('msg').style.opacity=0;msgT=0;$('hint').textContent='';if(document.pointerLockElement)document.exitPointerLock();
   const place=win?1:ME.place||ALL.filter(a=>a.alive).length+1,n=ALL.length;
   setTimeout(()=>{$('card').innerHTML=`<h1><small>${win?'WINNER':'ELIMINATED'}</small>${win?'勝利！ 最後の1人':`${place}位`}</h1>
-    <p>${win?'夕暮れの集落で、最後まで生き残った。':`倒したのは <b>${ME.lastHitBy?ME.lastHitBy.name:'安全地帯'}</b>。`}</p>
+    <p>${win?'惑星の採掘基地で、最後まで生き残った。':`倒したのは <b>${ME.lastHitBy?ME.lastHitBy.name:'安全地帯'}</b>。`}</p>
     ${S.recap.length?`<ol class="recap">${S.recap.slice(-6).map(r=>`<li><span>${fmt(r.t)}</span>${r.txt}</li>`).join('')}</ol>`:''}
     <dl class="res"><div><dt>順位</dt><dd>${place} / ${n}</dd></div><div><dt>キル</dt><dd>${ME.kills}</dd></div><div><dt>与ダメージ</dt><dd>${Math.round(ME.dmgDone)}</dd></div><div><dt>生存時間</dt><dd>${fmt(S.t)}</dd></div></dl>
     <button class="btn" id="start">同じ人数でもう一度</button><button class="btn ghost" id="menu">人数を選び直す</button>`;
@@ -1061,8 +1067,10 @@ function resize(){const r=cvEl.getBoundingClientRect();R.setSize(r.width,r.heigh
 addEventListener('resize',resize);
 let last=0,hudT=0;
 function frame(now){if(DROP){requestAnimationFrame(frame);return}const dt=Math.min(.05,(now-last)/1000||0);last=now;
-  if(ME&&!S.over&&!paused&&$('overlay').hidden){let d2=dt;if(S.hitStop>0){S.hitStop-=dt;d2=dt*.25}tick(d2)}
-  else if(ME&&S.over){for(const b of BOTS)if(b.alive)botUpdate(b,dt*.5)}
+  if(ME&&!S.over&&!paused&&$('overlay').hidden){let d2=dt;if(S.hitStop>0){S.hitStop-=dt;d2=NET.on?dt:dt*.25}tick(d2)}
+  else if(ME&&NET.host&&!NET.done)hostWorld(dt);
+  else if(ME&&S.over&&!NET.on){for(const b of BOTS)if(b.alive)botUpdate(b,dt*.5)}
+  if(ME&&NET.on)netFrame(dt);
   if(ME)render(now,dt);if(ME&&!S.over&&!paused)autoQuality(dt);requestAnimationFrame(frame)}
 // adaptive quality: if the frame rate stays low, shorten the detailed-tree radius, thin the grass, then drop the pixel ratio
 const AQ={t:0,sum:0,n:0,lv:0};
@@ -1076,7 +1084,7 @@ function tryMantle(){const fx=-Math.sin(ME.yaw),fz=-Math.cos(ME.yaw);
     for(const e of[.45,.75]){const tx=ME.x+fx*(d+e),tz=ME.z+fz*(d+e);FEET=top;const ok=free(tx,tz,ME.r*.9);FEET=null;
       if(ok&&platformTop(tx,tz,top+.05,0)>=top-.05){S.mantle={fx:ME.x,fz:ME.z,fy:ME.y,tx,tz,ty:top,t:0};S.crouch=false;S.slide=null;step(.12);return true}}
     return false}return false}
-function tick(dt){S.t+=dt;updateZone(dt);
+function tick(dt){S.t+=dt;if(!NET.client)updateZone(dt);
   S.dT=(S.dT||0)-dt;if(S.dT<=0&&ME.alive){S.dT=.5;const tx=ME.x/T,tz=ME.z/T,d=DIST.find(d=>tx>=d.x0&&tx<d.x1&&tz>=d.y0&&tz<d.y1)||null;if(d!==S.dist){S.dist=d;if(d&&!S.drop)say('― '+DNAME[d.k]+' ―',2.4)}}
   // movement
   let mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0),mf=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
@@ -1176,8 +1184,9 @@ function render(now,dt){
 const START_HTML=$('card').innerHTML;
 function bindSights(){$$('.sgts').forEach(g=>{const id=g.dataset.w;g.querySelectorAll('button').forEach(b=>{const on=b.dataset.s===SIGHT[id];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);
   b.onclick=()=>{SIGHT[id]=b.dataset.s;try{localStorage.setItem('dr_sight2',JSON.stringify(SIGHT))}catch(_){}bindSights()}})})}
-function bindStart(){$('start').onclick=startGame;bindSens();bindSights();$$('.size').forEach(b=>{b.classList.toggle('on',b.dataset.size===SIZE);b.setAttribute('aria-pressed',b.dataset.size===SIZE);
+function bindStart(){$('start').onclick=startGame;bindNet();bindSens();bindSights();$$('.size').forEach(b=>{b.classList.toggle('on',b.dataset.size===SIZE);b.setAttribute('aria-pressed',b.dataset.size===SIZE);
   b.onclick=()=>{SIZE=b.dataset.size;$$('.size').forEach(o=>{o.classList.toggle('on',o===b);o.setAttribute('aria-pressed',o===b)})}})}
+/*NET*/
 bindStart();
 // a living backdrop behind the start card
 (function preview(){grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();S={cans:[],pings:[]};

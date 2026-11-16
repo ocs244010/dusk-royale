@@ -7,7 +7,7 @@ S = D / "src"
 head = (S / "br_head.html").read_text(encoding="utf8")
 glb = (S / "glb.js").read_text(encoding="utf8")
 engine = (S / "engine.js").read_text(encoding="utf8")
-game = (S / "br.js").read_text(encoding="utf8")
+game = (S / "br.js").read_text(encoding="utf8").replace("/*NET*/", (S / "net.js").read_text(encoding="utf8"))
 ERRBOX = """<script>
 (function(){function show(m){var d=document.getElementById('errbox');if(!d){d=document.createElement('div');d.id='errbox';d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#3a0d12;color:#ffd6d6;border:1px solid #ff6b6b;border-radius:6px;padding:10px 12px;font:13px/1.5 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto';(document.body||document.documentElement).appendChild(d);d.textContent='エラーが出ました。この文章をそのままClaudeに送ってください。\\n\\n'}d.textContent+=m+'\\n'}
 window.addEventListener('error',function(e){if(!e.message)return;show((e.message||'error')+(e.filename?'  ('+e.filename.split('/').pop()+':'+e.lineno+':'+e.colno+')':'')+(e.error&&e.error.stack?'\\n'+e.error.stack.split('\\n').slice(0,4).join('\\n'):''))},true);
@@ -24,6 +24,7 @@ html = (
     + '<script src="lib/three.min.js"></script>\n'
     + '<script src="lib/GLTFLoader.js"></script>\n'
     + '<script src="lib/SkeletonUtils.js"></script>\n'
+    + '<script src="lib/peerjs.min.js"></script>\n'
     + "<script>\n" + glb + "</script>\n"
     + "<script>\n(()=>{\n" + engine + game + "</script>\n"
     # Live Server inserts its reload script just before </body>; without it, it picks an </svg> inside the game code and breaks it
