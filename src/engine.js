@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 const LOOTNAME={fuse:'ヒューズ',key:'車のキー',map:'地図',heal:'救急スプレー',spray:'催涙スプレー',cracker:'爆竹'};
 let grid,P,K,S,keys={};
-let doors,wins,drawers,closets,van,phone,police,floors=[],cols=new Map();
+let doors,wins,drawers,closets,van,phone,police,floors=[],cols=new Map(),DOORP=new Map();
 const kk=(x,y)=>y*W+x;
 
 // ================= map: generated per game, size depends on player count =================
@@ -141,7 +141,15 @@ function buildHeights(seed){const r=mulberry(seed+3);const a=r()*6,b=r()*6,c=r()
   // level the ground under the larger cover structures so floors, doors and steps sit flush
   for(const c of COVER){if(c.k==='wall'||c.k==='crate'||c.k==='rock')continue;const x0=c.x*T-.6,x1=(c.x+c.w)*T+.6,z0=c.y*T-.6,z1=(c.y+c.h)*T+.6;const ci=Math.round((x0+x1)/2+HOFF),cj=Math.round((z0+z1)/2+HOFF),pad=HG[cj*HGW+ci];
     for(let j=Math.max(0,Math.floor(z0-7+HOFF));j<=Math.min(HGH-1,Math.ceil(z1+7+HOFF));j++)for(let i=Math.max(0,Math.floor(x0-7+HOFF));i<=Math.min(HGW-1,Math.ceil(x1+7+HOFF));i++){
-      const x=i-HOFF,z=j-HOFF,dd=Math.hypot(Math.max(x0-x,0,x-x1),Math.max(z0-z,0,z-z1));const w=Math.min(1,dd/6),sm=w*w*(3-2*w);HG[j*HGW+i]=pad*(1-sm)+HG[j*HGW+i]*sm}}}
+      const x=i-HOFF,z=j-HOFF,dd=Math.hypot(Math.max(x0-x,0,x-x1),Math.max(z0-z,0,z-z1));const w=Math.min(1,dd/6),sm=w*w*(3-2*w);HG[j*HGW+i]=pad*(1-sm)+HG[j*HGW+i]*sm}c.pad=pad}
+  // final pass: later levelling (other houses, districts, structures) used to bend the ground under earlier houses,
+  // so floors ended up buried or floating. Re-level every footprint exactly, houses last, then structures inside their own footprint.
+  const level=(x0,x1,z0,z1,pad,flat,blend)=>{for(let j=Math.max(0,Math.floor(z0-flat-blend+HOFF));j<=Math.min(HGH-1,Math.ceil(z1+flat+blend+HOFF));j++)for(let i=Math.max(0,Math.floor(x0-flat-blend+HOFF));i<=Math.min(HGW-1,Math.ceil(x1+flat+blend+HOFF));i++){
+      const x=i-HOFF,z=j-HOFF,dd=Math.hypot(Math.max(x0-x,0,x-x1),Math.max(z0-z,0,z-z1));if(dd<=flat){HG[j*HGW+i]=pad;continue}if(!blend)continue;const w=Math.min(1,(dd-flat)/blend),sm=w*w*(3-2*w);HG[j*HGW+i]=pad*(1-sm)+HG[j*HGW+i]*sm}};
+  const avg=(x0,x1,z0,z1)=>{let s=0,n=0;for(let z=Math.ceil(z0);z<=z1;z++)for(let x=Math.ceil(x0);x<=x1;x++){s+=HG[Math.round(z+HOFF)*HGW+Math.round(x+HOFF)];n++}return n?s/n:0};
+  for(const d of DIST)if(d.k!=='pit'){level(d.x0*T,d.x1*T,d.y0*T,d.y1*T,d.pad,.6,0)}
+  for(const h of HOUSES){const x0=h.x*T,x1=(h.x+h.w)*T,z0=h.y*T,z1=(h.y+h.h)*T;h.pad=avg(x0,x1,z0,z1);level(x0,x1,z0,z1,h.pad,1.6,3.5)}
+  for(const c of COVER){if(c.pad===undefined)continue;level(c.x*T,(c.x+c.w)*T,c.y*T,(c.y+c.h)*T,c.pad,.6,0)}}
 function heightAt(x,z){const fx=Math.max(0,Math.min(HGW-1.001,x+HOFF)),fz=Math.max(0,Math.min(HGH-1.001,z+HOFF)),i=fx|0,j=fz|0,u=fx-i,v=fz-j;
   return HG[j*HGW+i]*(1-u)*(1-v)+HG[j*HGW+i+1]*u*(1-v)+HG[(j+1)*HGW+i]*(1-u)*v+HG[(j+1)*HGW+i+1]*u*v}
 // height of the rendered terrain mesh (2 m grid, triangulated like PlaneGeometry) - used for bullets so grazing shots match what is drawn
@@ -168,8 +176,10 @@ function colHit(x,z,tx,ty){const l=cols.get(kk(tx,ty));if(!l)return false;
   for(const o of l){if(o.top!==undefined&&FEET!==null&&FEET>=o.top-STEP)continue;if(o.soft&&ROB&&!SOLIDSOFT)continue;if(o.bot!==undefined&&(FEET!==null?FEET:heightAt(x,z))+1.75<=o.bot)continue;if(o.r){if(Math.hypot(x-o.x,z-o.z)<o.r)return true}else if(x>o.x0&&x<o.x1&&z>o.z0&&z<o.z1)return true}return false}
 function solidAt(x,z){const tx=TX(x),ty=TX(z);if(tx<2||ty<2||tx>=W-2||ty>=H-2)return true;const c=grid[ty][tx];
   if(c==='#'||c==='w')return slab(x,z,tx,ty,0);
-  if(c==='d')return slab(x,z,tx,ty,doorOpen(tx,ty)?DOORW/2:0);
-  return colHit(x,z,tx,ty)}
+  if(c==='d')return slab(x,z,tx,ty,doorOpen(tx,ty)?DOORW/2:0)||leafHit(x,z,tx,ty);
+  return colHit(x,z,tx,ty)||leafHit(x,z,tx,ty)}
+// you can't walk through a swung-open door leaf either
+function leafHit(x,z,tx,ty){const dl=DOORP.get(kk(tx,ty));if(!dl)return false;for(const d of dl)if(doorLeafAt(d,x,d.pad+1,z))return true;return false}
 function sightAt(x,z){const tx=TX(x),ty=TX(z),c=tile(tx,ty);if(c==='#')return slab(x,z,tx,ty,0);if(c==='d')return slab(x,z,tx,ty,doorOpen(tx,ty)?DOORW/2:0);
   if(c==='w'&&slab(x,z,tx,ty,0)){const lat=wallAxisX(tx,ty)?Math.abs(x-(tx*T+T/2)):Math.abs(z-(ty*T+T/2));return lat>WIN.ow/2}return false}
 function free(x,z,r){for(const a of[-r,0,r])for(const b of[-r,0,r])if(solidAt(x+a,z+b))return false;return true}
@@ -541,7 +551,11 @@ function wallAxisX(x,y){return'#wd'.includes(tile(x-1,y))&&'#wd'.includes(tile(x
 // ---------- doors ----------
 const isIn=(tx,ty)=>'fLD'.includes(tile(tx,ty));
 function buildDoor(d,B,sid,dmat,pad){const c=ctr(d),ax=wallAxisX(d.x,d.y),ry=ax?0:Math.PI/2;d.ax=ax;
-  const sgn=ax?(isIn(d.x,d.y+1)?1:-1):(isIn(d.x+1,d.y)?1:-1);d.sgn=sgn;const G=MX(c.x,pad,c.z,ry),side=(T-DOORW)/2,TH=2*SL;
+  const sgn=ax?(isIn(d.x,d.y+1)?1:-1):(isIn(d.x+1,d.y)?1:-1);d.sgn=sgn;const G=MX(c.x,pad,c.z,ry),side=(T-DOORW)/2,TH=2*SL;d.cx=c.x;d.cz=c.z;d.ry=ry;d.pad=pad;
+  // the airlock pillars and hood outside are solid; the door leaf itself is checked by rayHit (it swings)
+  {const L2W=(lx,lz)=>ry?[c.x+lz,c.z-lx]:[c.x+lx,c.z+lz],bx=(lx,lz,hx,hz,top,bot)=>{const[wx,wz]=L2W(lx,lz),ex=ry?hz:hx,ez=ry?hx:hz,o={x0:wx-ex,x1:wx+ex,z0:wz-ez,z1:wz+ez,h:pad+top};if(bot!==undefined)o.bot=pad+bot;addCol(o)};
+   for(const sx of[-1,1])bx(sx*(DOORW/2+.13),-sgn*(SL+.17),.11,.17,DOORH+.35);bx(0,-sgn*(SL+.26),DOORW/2+.36,.28,DOORH+.42,DOORH+.18);
+   for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const k=kk(d.x+a,d.y+b);if(!DOORP.has(k))DOORP.set(k,[]);DOORP.get(k).push(d)}}
   for(const sx of[-1,1])B.add(BOX(side,WALLH,TH),sid,rel(G,sx*(T/2-side/2),WALLH/2,0));
   B.add(BOX(DOORW,WALLH-DOORH,TH),sid,rel(G,0,(WALLH+DOORH)/2,0));
   // airlock surround: side pillars, hood with a light strip, warning stripes on the threshold
@@ -668,20 +682,20 @@ function buildWorld(){
     B.add(new THREE.PlaneGeometry(sw,sd),M.ceil,MX(cx,pd+WALLH-.01,cz,0,Math.PI/2));
     B.add(BOX(sw+2*SL+.06,1.4,sd+2*SL+.06),M.concrete,MX(cx,pd-.62,cz));
     // roof: thin deck, then a hex-panelled dome (main modules) or a barrel vault (small huts); glow ring at the base
-    {const rw=sw+2*SL+.3,rd=sd+2*SL+.3,ry=pd+WALLH;B.add(BOX(rw,.22,rd),HULLD,MX(cx,ry+.11,cz));
+    {const rw=sw+2*SL+.3,rd=sd+2*SL+.3,ry=pd+WALLH;B.add(BOX(rw,.22,rd),HULLD,MX(cx,ry+.11,cz));h.roof={cx,cz,ry,rw,rd};
      for(const s of[-1,1]){B.add(BOX(rw+.02,.035,.02),GLOW,MX(cx,ry+.15,cz+s*(rd/2+.01)));B.add(BOX(.02,.035,rd+.02),GLOW,MX(cx+s*(rw/2+.01),ry+.15,cz))}
-     if(!h.shed){const ra=rw/2-.15,rb=rd/2-.15,hd=Math.min(3.2,Math.max(1.8,Math.min(ra,rb)*.75));
+     if(!h.shed){const ra=rw/2-.15,rb=rd/2-.15,hd=Math.min(3.2,Math.max(1.8,Math.min(ra,rb)*.75));Object.assign(h.roof,{ra,rb,hd});
        B.add(new THREE.SphereGeometry(1,40,14,0,Math.PI*2,0,Math.PI/2),DOME,MX(cx,ry+.2,cz,0,0,0,ra,hd,rb));
        const ring=new THREE.TorusGeometry(1,.02,4,48);ring.rotateX(Math.PI/2);B.add(ring,GLOW,MX(cx,ry+.27,cz,0,0,0,ra+.04,1,rb+.04));B.add(ring,HULLD,MX(cx,ry+.23,cz,0,0,0,ra+.03,3,rb+.03));
        B.add(new THREE.CylinderGeometry(.5,.6,.25,12),HULLD,MX(cx,ry+.2+hd,cz));B.add(new THREE.CylinderGeometry(.03,.03,1.2,6),HULLD,MX(cx+.25,ry+.8+hd,cz));B.add(new THREE.SphereGeometry(.06,8,6),GLOWR,MX(cx+.25,ry+1.42+hd,cz));
        for(let k=0;k<3;k++){const a=k*2.1+.4;B.add(BOX(.9,.04,.6),SOLAR,MX(cx+Math.cos(a)*ra*.92,ry+.3,cz+Math.sin(a)*rb*.92,-a,-.2))}}
-     else{const alongX=rw>=rd,len=(alongX?rw:rd)-.1,r=(alongX?rd:rw)/2-.05,v=new THREE.CylinderGeometry(r,r,len,24,1,true,0,Math.PI);v.rotateZ(Math.PI/2);if(!alongX)v.rotateY(Math.PI/2);
+     else{const alongX=rw>=rd,len=(alongX?rw:rd)-.1,r=(alongX?rd:rw)/2-.05,v=new THREE.CylinderGeometry(r,r,len,24,1,true,0,Math.PI);Object.assign(h.roof,{vault:{alongX,len,r,hv:r*.7}});v.rotateZ(Math.PI/2);if(!alongX)v.rotateY(Math.PI/2);
        B.add(v,DOME,MX(cx,ry+.2,cz,0,0,0,1,.7,1));const cap=new THREE.CircleGeometry(r,24,0,Math.PI);
        for(const s of[-1,1]){B.add(cap,HULL,MX(cx+(alongX?s*len/2:0),ry+.2,cz+(alongX?0:s*len/2),alongX?Math.PI/2:0,0,0,1,.7,1));}
        for(let k=0;k<4;k++){const t=(k+.5)/4-.5,rib=new THREE.TorusGeometry(r+.02,.035,4,24,Math.PI);if(alongX)rib.rotateY(Math.PI/2);B.add(rib,HULLD,MX(cx+(alongX?t*len:0),ry+.2,cz+(alongX?0:t*len),0,0,0,1,.7,1))}}}
     // hex corner towers (solid), wall skirt and a service pipe along the long walls
     {const ex=sw/2+SL,ez=sd/2+SL;for(const sx of[-1,1])for(const sz of[-1,1]){const px=cx+sx*(ex+.05),pz=cz+sz*(ez+.05);B.add(new THREE.CylinderGeometry(.5,.56,WALLH+.9,6),HULL,MX(px,pd+(WALLH+.9)/2-.1,pz));
-        B.add(new THREE.CylinderGeometry(.56,.56,.06,6),GLOW,MX(px,pd+WALLH+.55,pz));B.add(new THREE.CylinderGeometry(.42,.5,.25,6),HULLD,MX(px,pd+WALLH+.9,pz));addCol({x:px,z:pz,r:.52})}
+        B.add(new THREE.CylinderGeometry(.56,.56,.06,6),GLOW,MX(px,pd+WALLH+.55,pz));B.add(new THREE.CylinderGeometry(.42,.5,.25,6),HULLD,MX(px,pd+WALLH+.9,pz));addCol({x:px,z:pz,r:.52,h:pd+WALLH+1.03})}
      for(const s of[-1,1]){B.add(BOX(sw+2*SL+.06,.3,.04),HULLD,MX(cx,pd+.15,cz+s*(ez+.015)));B.add(BOX(.04,.3,sd+2*SL+.06),HULLD,MX(cx+s*(ex+.015),pd+.15,cz))}
      const alongX=sw>=sd;for(const s of[-1,1]){const L=(alongX?sw:sd)-1.4,p=new THREE.CylinderGeometry(.06,.06,L,8);p.rotateZ(Math.PI/2);if(!alongX)p.rotateY(Math.PI/2);
        B.add(p,HULLD,MX(cx+(alongX?0:s*(ex+.12)),pd+2.3,cz+(alongX?s*(ez+.12):0)));for(let k=0;k<4;k++){const t=(k+.5)/4-.5;B.add(BOX(.08,.14,.14),HULL,MX(cx+(alongX?t*L:s*(ex+.07)),pd+2.3,cz+(alongX?s*(ez+.07):t*L)))}}}
@@ -766,17 +780,19 @@ function buildWorld(){
        for(const s of[-1,1])B.add(BOX(along?.02:L,.04,along?L:.02),GLOW,MX(cx+(along?s*.26:0),gy+.9,cz+(along?0:s*.26)));
        addCol(along?{x0:cx-.28,x1:cx+.28,z0:cz-.98,z1:cz+.98,top:gy+1.15}:{x0:cx-.98,x1:cx+.98,z0:cz-.28,z1:cz+.28,top:gy+1.15})}
      else if(c.k==='cont'){// shipping container on its side, sometimes with a second one stacked crosswise - too tall to climb
-       const gy2=Math.min(heightAt(x0+.3,z0+.3),heightAt(x0+w-.3,z0+d-.3),heightAt(cx,cz)),L=c.rot?[2.3,3.9]:[3.9,2.3],cm=CONT[(c.v*5)|0];
-       box(cx,gy2+1.1,cz,L[0],2.8,L[1],cm);box(cx,gy2+2.52,cz,L[0]+.04,.05,L[1]+.04,HULLD);for(const s2 of[-1,1])B.add(BOX(c.rot?2.32:.04,2.2,c.rot?.04:2.32),HULLD,MX(cx+(c.rot?0:s2*1.95),gy2+1.2,cz+(c.rot?s2*1.95:0)));
-       for(let k=-3;k<=3;k++)B.add(BOX(c.rot?2.32:.05,2.3,c.rot?.05:2.32),HULLD,MX(cx+(c.rot?0:k*.5),gy2+1.25,cz+(c.rot?k*.5:0)));
+       const gy2=Math.min(heightAt(x0+.3,z0+.3),heightAt(x0+w-.3,z0+d-.3),heightAt(cx,cz)),L=c.rot?[1.96,3.9]:[3.9,1.96],cm=CONT[(c.v*5)|0];
+       box(cx,gy2+1.1,cz,L[0],2.8,L[1],cm);box(cx,gy2+2.52,cz,L[0]+.04,.05,L[1]+.04,HULLD);for(const s2 of[-1,1])B.add(BOX(c.rot?1.98:.04,2.2,c.rot?.04:1.98),HULLD,MX(cx+(c.rot?0:s2*1.95),gy2+1.2,cz+(c.rot?s2*1.95:0)));
+       for(let k=-3;k<=3;k++)B.add(BOX(c.rot?1.98:.05,2.3,c.rot?.05:1.98),HULLD,MX(cx+(c.rot?0:k*.5),gy2+1.25,cz+(c.rot?k*.5:0)));
        const st=c.v>.65;if(st){box(cx,gy2+3.85,cz,L[0]*.95,2.6,L[1]*.95,CONT[(((c.v*5)|0)+3)%5]);B.add(BOX(L[0]*.96,.03,.03),GLOW,MX(cx,gy2+4.4,cz+L[1]*.48))}
        for(let yy=c.y;yy<c.y+c.h;yy++)for(let xx=c.x;xx<c.x+c.w;xx++)tileBox(xx,yy,gy2+(st?5.1:2.55))}
      else if(c.k==='crate'){// cargo crate with a smaller box on top
        const gy=heightAt(cx,cz);box(cx,gy+.3,cz,1.5,2.0,1.5,CONT[(((c.v*5)|0)+1)%5]);box(cx,gy+1.31,cz,1.56,.05,1.56,HULLD);for(const s of[-1,1]){box(cx+s*.765,gy+.64,cz,.06,1.28,1.58,HULLD);box(cx,gy+.635,cz+s*.765,1.57,1.27,.06,HULLD)}
-       if(c.v>.5){box(cx-.2,gy+1.6,cz+.15,.7,.55,.7,HULL);B.add(BOX(.72,.03,.03),GLOW,MX(cx-.2,gy+1.75,cz+.51))}addCol({x0:cx-.78,x1:cx+.78,z0:cz-.78,z1:cz+.78,top:gy+1.3})}
-     else{// rock outcrop: big lumpy boulders, too tall to climb
-       const g2=rockGeo();for(const[ox,oz,sc,hy]of[[0,0,2.1,2.6],[1.1,.7,1.2,1.6],[-.9,-.8,1.3,1.8]])B.add(g2,M.rock,MX(cx+ox,gy-.15,cz+oz,c.v*6,0,0,sc,hy/.78,sc));
-       for(let yy=c.y;yy<c.y+c.h;yy++)for(let xx=c.x;xx<c.x+c.w;xx++)tileBox(xx,yy,gy+2.6)}}}
+       if(c.v>.5){box(cx-.2,gy+1.6,cz+.15,.7,.55,.7,HULL);B.add(BOX(.72,.03,.03),GLOW,MX(cx-.2,gy+1.75,cz+.51));addCol({x0:cx-.56,x1:cx+.16,z0:cz-.21,z1:cz+.51,top:gy+1.88,bot:gy+1.3})}addCol({x0:cx-.78,x1:cx+.78,z0:cz-.78,z1:cz+.78,top:gy+1.3})}
+     else{// rock outcrop: four boulders stepping up 1.2 -> 1.9 -> 2.6 m, so it can be climbed from the low corner
+       const g2=rockGeo(),ts=[[c.x,c.y],[c.x+1,c.y],[c.x+1,c.y+1],[c.x,c.y+1]],k0=(c.v*4)|0,HS=[1.2,1.9,2.6,1.9];
+       ts.forEach(([xx,yy],k)=>{const h=HS[(k-k0+4)%4],tx=xx*T+T/2,tz=yy*T+T/2,gh=Math.min(heightAt(tx-.6,tz-.6),heightAt(tx+.6,tz+.6),heightAt(tx,tz));
+         const bx=tx+(cx-tx)*.12,bz=tz+(cz-tz)*.12;B.add(g2,M.rock,MX(bx,gh-.12,bz,c.v*6+k*1.7,0,0,1.18,(h+.12)/.78,1.18));
+         addCol({x0:xx*T+.02,x1:xx*T+T-.02,z0:yy*T+.02,z1:yy*T+T-.02,top:gh+h,dome:{x:bx,z:bz,r:1.3,y0:gh-.12}})})}}}
   // district ground: concrete slab with lane stripes in the yard, a dark pad with light strips at the landing pad, beacons round the post and the pit rim
   {const PL=STD({color:0x6a7078,roughness:.85,metalness:.1,map:TX_.concrete}),PD=STD({color:0x30343c,roughness:.6,metalness:.4}),YEL=new THREE.MeshBasicMaterial({color:0xd8a830});
    const beacon=(x,z)=>{const y=heightAt(x,z);B.add(new THREE.CylinderGeometry(.06,.09,1.1,6),HULLD,MX(x,y+.55,z));B.add(new THREE.SphereGeometry(.09,8,6),GLOWR,MX(x,y+1.15,z));lampSrc.push({x,y:y+1.2,z,col:0xff6a4a,i:.35,d:5})};
@@ -790,7 +806,7 @@ function buildWorld(){
   {const r=mulberry(5),con=[],brd=[],bushes=[],rocks=[],C=()=>new THREE.Color();
    const tint=(p,k)=>{p.c=k?C().setHSL(.72+r()*.2,.35+r()*.3,.55+r()*.25):C().setHSL(r()<.6?.5+r()*.06:.74+r()*.08,.6+r()*.3,.5+r()*.25);return p};
    const add=(x,z,inside,broadP)=>{const b=r()<broadP,p=tint({x,z,y:heightAt(x,z)-.08,s:(b?.85:.8)+r()*(b?.45:.65),ry:r()*6.28,tx:(r()-.5)*.06,tz:(r()-.5)*.06},b);(b?brd:con).push(p);
-     if(inside&&x>2*T&&z>2*T&&x<(W-2)*T&&z<(H-2)*T)addCol({x,z,r:.32})};
+     if(inside&&x>2*T&&z>2*T&&x<(W-2)*T&&z<(H-2)*T)addCol({x:x+(b?Math.sin(2.4)*.15*p.s:0),z,r:b?.3*p.s:.5*p.s})};
    for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(grid[y][x]!=='T')continue;const border=x<2||y<2||x>=W-2||y>=H-2;add(x*T+T/2+(r()-.5)*.9,y*T+T/2+(r()-.5)*.9,true,border?.18:.4)}
    for(let z=-HOFF+2;z<H*T+HOFF-2;z+=3.4)for(let x=-HOFF+2;x<W*T+HOFF-2;x+=3.4){if(x>-1&&z>-1&&x<W*T+1&&z<H*T+1)continue;const jx=x+(r()-.5)*2.6,jz=z+(r()-.5)*2.6,ed=Math.max(-jx,-jz,jx-W*T,jz-H*T);if(fbm(jx*.05,jz*.05)<.32+ed*.006)continue;add(jx,jz,false,.2)}
    for(let y=3;y<H-3;y++)for(let x=3;x<W-3;x++){if(grid[y][x]!=='.')continue;

@@ -3,7 +3,7 @@
 const WEAP={
   // hip: hip-fire spread multiplier, mv: extra spread while moving, ads/draw: seconds to aim/draw, pat: recoil pattern phase, botAcc: bot hit-chance multiplier
   pistol:{kick:.014,bl:.004,hip:1.4,mv:.8,ads:.14,draw:.3,pat:0,botAcc:1.3,name:'ハンドガン',tier:1,dmg:19,iv:.2,mag:12,ammo:'light',spread:.012,range:55,fall:[18,40,.6],auto:false,reload:1.2,col:0x2a2c30,len:.26,snd:[1400,.18]},
-  smg:{kick:.011,bl:.004,hip:1.3,mv:.5,ads:.16,draw:.35,pat:1.7,botAcc:.85,name:'サブマシンガン',tier:2,dmg:9,iv:.075,mag:30,ammo:'light',spread:.026,range:40,fall:[10,28,.5],auto:true,reload:1.8,col:0x3a3f46,len:.42,snd:[1700,.12]},
+  smg:{kick:.011,bl:.004,hip:1.3,mv:.5,ads:.16,draw:.35,pat:1.7,botAcc:.85,name:'サブマシンガン',tier:2,dmg:10,iv:.075,mag:30,ammo:'light',spread:.026,range:40,fall:[15,32,.6],auto:true,reload:1.8,col:0x3a3f46,len:.42,snd:[1700,.12]},
   shotgun:{kick:.055,bl:0,hip:1,mv:.3,ads:.2,draw:.45,pat:0,botAcc:1,name:'ショットガン',tier:2,dmg:12,pellets:9,iv:.8,mag:5,ammo:'shell',spread:.055,range:26,fall:[8,24,.3],auto:false,reload:.52,perShell:true,open:.3,col:0x5a3a24,len:.62,snd:[700,.32]},
   rifle:{kick:.014,bl:.005,hip:1.9,mv:1.4,ads:.22,draw:.45,pat:4.1,botAcc:1,name:'アサルトライフル',tier:2,dmg:16,iv:.13,mag:30,ammo:'medium',spread:.018,range:80,fall:[45,75,.8],auto:true,reload:2.2,col:0x4a4f38,len:.66,snd:[1100,.2]},
   sniper:{kick:.07,bl:0,hip:1,mv:2,ads:.3,draw:.55,pat:0,botAcc:1,name:'ボルトアクション',tier:2,dmg:80,iv:1.2,mag:1,fixedMag:true,ammo:'heavy',spread:.002,range:160,fall:[999,999,1],auto:false,reload:1.7,col:0x3a2e22,len:.85,snd:[800,.36],scope:true}};
@@ -526,12 +526,12 @@ function impact(p){const s=new THREE.Sprite(impMat);s.position.copy(p);s.scale.s
 // ---------- zone ----------
 const zoneMat=new THREE.MeshBasicMaterial({color:0x4a9cff,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false,fog:false});
 const zoneMesh=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,96,1,true),zoneMat);zoneMesh.renderOrder=5;scene.add(zoneMesh);
-function zonePhases(){const sc=Math.min(1.6,Math.max(1,Math.hypot(W,H)/80))*(CFG.players>=16?1.1:1);return[[50,28,.4,2],[40,22,.23,3],[32,18,.12,5],[26,15,.05,8],[22,12,0,12]].map(p=>[p[0]*sc,p[1]*sc,p[2],p[3]])}
+function zonePhases(){const sc=Math.min(1.6,Math.max(1,Math.hypot(W,H)/80))*(CFG.players>=16?1.1:1);return[[50,28,.4,1],[40,22,.23,2],[32,18,.12,4],[26,15,.05,6],[22,12,0,8]].map(p=>[p[0]*sc,p[1]*sc,p[2],p[3]])}
 function initZone(){const r0=Math.hypot(W*T,H*T)/2+6,c={x:W*T/2,z:H*T/2};Z={cx:c.x,cz:c.z,r:r0,from:{x:c.x,z:c.z,r:r0},to:null,ph:-1,t:0,state:'wait',dps:0,phases:zonePhases(),r0};nextZone()}
 function nextZone(){Z.ph++;const p=Z.phases[Z.ph];if(!p){Z.state='final';return}
   const nr=Z.r0*p[2];let nx,nz,tries=0;do{const a=Math.random()*6.28,d=Math.random()*Math.max(0,Z.r-nr);nx=Z.cx+Math.cos(a)*d;nz=Z.cz+Math.sin(a)*d;tries++}
   while(tries<40&&(nx<8||nz<8||nx>W*T-8||nz>H*T-8));Z.from={x:Z.cx,z:Z.cz,r:Z.r};Z.to={x:nx,z:nz,r:Math.max(1.5,nr)};Z.state='wait';Z.t=p[0];Z.dur=p[1];Z.pdps=p[3]}
-function updateZone(dt){if(Z.state==='final'){Z.r=Math.max(0,Z.r-dt*.3);Z.ft=(Z.ft||0)+dt;Z.dps=Math.round(16+Z.ft*2);return}Z.t-=dt;
+function updateZone(dt){if(Z.state==='wait'&&ALL.filter(a=>a.alive).length<=4)Z.t-=dt*1.5;if(Z.state==='final'){Z.r=Math.max(0,Z.r-dt*.3);Z.ft=(Z.ft||0)+dt;Z.dps=Math.round(10+Z.ft*.5);return}Z.t-=dt;
   if(Z.state==='wait'){if(Z.t<=0){Z.state='shrink';Z.t=Z.dur;say('安全地帯が縮み始めた！',3)}}
   else{const k=1-Math.max(0,Z.t)/Z.dur;Z.cx=Z.from.x+(Z.to.x-Z.from.x)*k;Z.cz=Z.from.z+(Z.to.z-Z.from.z)*k;Z.r=Z.from.r+(Z.to.r-Z.from.r)*k;Z.dps=Z.pdps;if(Z.t<=0)nextZone()}
   if(Z.ph>0&&Z.state==='wait')Z.dps=Z.phases[Z.ph-1][3]}
@@ -553,10 +553,11 @@ function spawnItem(it,x,z,y){it.x=x;it.z=z;if(y!==undefined)it.y=y;const rr=item
   const glow=new THREE.Mesh(GLOWGEO,glowMat(rr));const gs=it.kind==='weapon'?1.1:it.kind==='armor'?.8:.6;glow.scale.set(gs,1,gs);glow.position.y=.012;g.add(glow);
   g.position.set(x,y!==undefined?y:groundY(x,z),z);g.rotation.y=Math.random()*6;world.add(g);it.mesh=g;ITEMS.push(it);return it}
 function removeItem(it){const i=ITEMS.indexOf(it);if(i>=0)ITEMS.splice(i,1);world.remove(it.mesh)}
-function itemLabel(it){return it.kind==='optic'?OPTICS[it.id].n:it.kind==='weapon'?(it.r?RAR[it.r].n+'・':'')+WEAP[it.id].name+(it.optic?'＋'+OPTICS[it.optic].n:''):it.kind==='helmet'?`ヘルメット Lv${it.lv}`:it.kind==='armor'?`防弾ベスト Lv${it.lv}`:it.kind==='ammo'?`${AMMONAME[it.id]} ×${it.amt}`:it.kind==='bandage'?`包帯 ×${it.amt}`:it.kind==='medkit'?'救急キット':'防弾ベスト'}
+function itemLabel(it){return it.kind==='optic'?OPTICS[it.id].n:it.kind==='weapon'?(it.r?RAR[it.r].n+'・':'')+WEAP[it.id].name+(it.optic?'＋'+OPTICS[it.optic].n:''):it.kind==='helmet'?`ヘルメット Lv${it.lv}（耐久${Math.round(it.hp)}/${HELM[it.lv].cap}）`:it.kind==='armor'?`防弾ベスト Lv${it.lv}（耐久${Math.round(it.hp)}/${VEST[it.lv].cap}）`:it.kind==='ammo'?`${AMMONAME[it.id]} ×${it.amt}`:it.kind==='bandage'?`包帯 ×${it.amt}`:it.kind==='medkit'?'救急キット':'防弾ベスト'}
 function seedLoot(){ITEMS=[];
   for(const h of HOUSES){const n=h.shed?1:2+((Math.random()*2)|0);const opts=[];for(let y=h.y+1;y<h.y+h.h-1;y++)for(let x=h.x+1;x<h.x+h.w-1;x++)if(grid[y][x]==='f')opts.push({x,y});
     for(let k=0;k<n&&opts.length;k++){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);rollLoot(k===0&&!h.shed).forEach((it,j)=>spawnItem(it,c.x+(Math.random()-.5)*.8+j*.5,c.z+(Math.random()-.5)*.8))}
+    if(!h.shed&&opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),lv=rollLv();spawnItem(Math.random()<.5?{kind:'armor',lv,hp:VEST[lv].cap}:{kind:'helmet',lv,hp:HELM[lv].cap},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
     if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);spawnItem(Math.random()<.75?{kind:'bandage',amt:Math.random()<.6?1:2}:{kind:'medkit',amt:1},c.x+(Math.random()-.5)*.8,c.z+(Math.random()-.5)*.8)}}
   for(const c of CARS){const cx=c.dir==='x'?(c.tx+1)*T:c.tx*T+T/2,cz=c.dir==='x'?c.ty*T+T/2:(c.ty+1)*T;const ox=c.dir==='x'?0:1.6,oz=c.dir==='x'?1.6:0;
     if(free(cx+ox,cz+oz,.3))rollLoot().forEach((it,j)=>spawnItem(it,cx+ox+j*.5,cz+oz))}
@@ -578,7 +579,7 @@ function bestSlot(a){let b=-1,t=-1;a.slots.forEach((s,i)=>{if(s&&wScore(s)>t){t=
 // ---------- damage ----------
 const feed=[];function killFeed(t){feed.unshift({t,life:6});if(feed.length>5)feed.pop();renderFeed()}
 function renderFeed(){$('feed').innerHTML=feed.map(f=>`<div>${f.t}</div>`).join('')}
-function damage(v,dmg,by,wname,head,raw){if(!v.alive||(S.over&&!NET.on)||NET.done)return null;if(!isFinite(dmg))return null;let abs=0,broke=false;
+function damage(v,dmg,by,wname,head,raw){if(!v.alive||(S.over&&!NET.on&&!SPEC.on)||NET.done)return null;if(!isFinite(dmg))return null;let abs=0,broke=false;
   if(!raw){if(head&&v.helmLv>0){const ab=Math.min(v.helm,dmg*HELM[v.helmLv].abs);v.helm-=ab;dmg-=ab;abs=ab;if(v.helm<=.5){v.helm=0;v.helmLv=0;broke=true}}
     else if(!head&&v.armorLv>0){const ab=Math.min(v.armor,dmg*VEST[v.armorLv].abs);v.armor-=ab;dmg-=ab;abs=ab;if(v.armor<=.5){v.armor=0;v.armorLv=0;broke=true}}}
   v.hp-=dmg;if(!isFinite(v.hp))v.hp=0;if(by)by.dmgDone+=dmg;if(v.me&&by)ME.dmgFrom[by.i]=(ME.dmgFrom[by.i]||0)+dmg;if(by&&by.me)ME.dmgTo[v.i]=(ME.dmgTo[v.i]||0)+dmg;
@@ -630,6 +631,17 @@ const sfx={body:()=>{tone(1150,'triangle',.07,.05,900)},head:()=>{tone(1800,'sin
 
 // ---------- shooting ----------
 const _v=new THREE.Vector3();
+// an open (swung) door leaf stops bullets too; a closed one is part of the wall slab already
+function leafQ(d,x,z){const dx=x-d.cx,dz=z-d.cz,lx=d.ry?-dz:dx,lz=d.ry?dx:dz,px=lx+DOORW/2,pz=lz,a=-d.sgn*1.45*d.ang,ca=Math.cos(a),sa=Math.sin(a);return[px*ca-pz*sa,px*sa+pz*ca]}
+const leafOn=d=>!d.broken&&d.ang>.08&&d.cx!==undefined;
+function doorLeafAt(d,x,y,z){if(!leafOn(d)||y<d.pad||y>d.pad+DOORH)return false;const[qx,qz]=leafQ(d,x,z);return qx>-.02&&qx<DOORW+.02&&Math.abs(qz)<.08}
+// a bullet step can jump over the thin leaf, so test the segment between two ray samples
+function doorLeafSeg(d,x0,z0,x1,z1,y){if(!leafOn(d)||y<d.pad||y>d.pad+DOORH)return false;const[a0,b0]=leafQ(d,x0,z0),[a1,b1]=leafQ(d,x1,z1);
+  if((b0>.08&&b1>.08)||(b0<-.08&&b1<-.08))return false;const t=Math.abs(b1-b0)<1e-6?0:Math.min(1,Math.max(0,b0/(b0-b1))),qx=a0+(a1-a0)*t;return qx>-.02&&qx<DOORW+.02}
+// roof of a module: the flat deck, then the dome (or the barrel vault on small huts)
+function roofHit(R,x,y,z){const ddx=x-R.cx,ddz=z-R.cz;if(y<R.ry-.05)return false;if(Math.abs(ddx)>R.rw/2||Math.abs(ddz)>R.rd/2)return false;if(y<R.ry+.25)return true;const dy=y-(R.ry+.2);
+  if(R.ra)return(ddx/R.ra)**2+(dy/R.hd)**2+(ddz/R.rb)**2<1;
+  if(R.vault){const V=R.vault,a=V.alongX?ddx:ddz,p=V.alongX?ddz:ddx;return Math.abs(a)<V.len/2&&(p/V.r)**2+(dy/V.hv)**2<1}return false}
 function rayHit(ox,oy,oz,dx,dy,dz,range,shooter,pierceGlass=true){
   const step=.2;let hitActor=null,head=false,t=0;
   const near=ALL.filter(a=>a.alive&&a!==shooter&&Math.hypot(a.x-ox,a.z-oz)<range+2);
@@ -643,8 +655,12 @@ function rayHit(ox,oy,oz,dx,dy,dz,range,shooter,pierceGlass=true){
       if(lat>WIN.ow/2&&rel<WALLH)return{t,end:{x,y,z},solid:true};// wall beside the window frame
       if(rel<WIN.y0||rel>WIN.y1&&rel<WALLH)return{t,end:{x,y,z},solid:true};
       if(rel>=WIN.y0&&rel<=WIN.y1){const w=wins.get(kk(tx,tz));if(w&&w.state==='closed'){if(pierceGlass){setWin(w,'broken');glass(vAt(x,z),panAt(x,z))}else return{t,end:{x,y,z},solid:true,glass:w}}}}
-    if(h&&!h.shed&&y>pad+WALLH-.05&&y<pad+WALLH+1.3&&x>(h.x+.5)*T-SL&&x<(h.x+h.w-.5)*T+SL&&z>(h.y+.5)*T-SL&&z<(h.y+h.h-.5)*T+SL)return{t,end:{x,y,z},solid:true};
+    {const dl=DOORP.get(kk(tx,tz));if(dl)for(const d of dl)if(doorLeafSeg(d,x-dx*step,z-dz*step,x,z,y))return{t,end:{x,y,z},solid:true}}
+    if(h&&h.roof&&roofHit(h.roof,x,y,z))return{t,end:{x,y,z},solid:true};
+    if(h&&y<h.pad+.1&&'fDL'.includes(c))return{t,end:{x,y,z},solid:true};
     if(y<gy+8){const l=cols.get(kk(tx,tz));if(l)for(const o of l){if(o.soft)continue;if(o.bot!==undefined&&y<o.bot)continue;const ins=o.r?Math.hypot(x-o.x,z-o.z)<o.r:(x>o.x0&&x<o.x1&&z>o.z0&&z<o.z1);if(!ins)continue;
+      // boulders: bullets follow the rounded rock, not the square block you stand on
+      if(o.dome){const q=Math.hypot(x-o.dome.x,z-o.dome.z)/o.dome.r;if(q>=1||y>o.dome.y0+(o.top-o.dome.y0)*Math.sqrt(1-q*q))continue}
       const top=o.top!==undefined?o.top:o.h!==undefined?o.h:o.r?gy+8:gy+1.6;if(y<top)return{t,end:{x,y,z},solid:true}}}
     for(const a of near){const ay=a.me&&ME.y!==undefined?ME.y:AY(a),dxa=x-a.x,dza=z-a.z,hd=Math.hypot(dxa,dza);
       const st=stanceOf(a);
@@ -725,7 +741,7 @@ function botShoot(a,W_){const t=a.enemy;if(!t||!t.alive)return;const d=Math.hypo
   const ay=AY(a)+1.45,ox=a.x+Math.sin(a.face)*.6,oz=a.z+Math.cos(a.face)*.6;
   const st=stanceOf(t),gy=t.me&&ME.y!==undefined?ME.y:AY(t);let cx=t.x,cz=t.z,cy;
   if(st==='prone'){const f=t.me?ME.yaw:t.face+Math.PI;cx+=-Math.sin(f)*.75;cz+=-Math.cos(f)*.75;cy=gy+.22}else cy=gy+(st==='crouch'?.75:1.1)+.25*a.skill;
-  const p=Math.min(.97,Math.max(.03,.8*(t.me?1:.4)*(W_.botAcc||1)*a.skill*rangeK*tmov*amov*(a.crouch?1.1:1)*Math.min(1,.55+Math.max(0,a.seen-a.react)*.35)*(W_.id==='sniper'?1.15:1)));
+  const p=Math.min(.97,Math.max(.03,.8*(t.me||t.human?.75:.5)*(W_.botAcc||1)*a.skill*rangeK*tmov*amov*(a.crouch?1.1:1)*Math.min(1,.55+Math.max(0,a.seen-a.react)*.35)*(W_.id==='sniper'?1.15:1)));
   // sigma such that a 0.36m-radius torso would be hit with probability p (pellets add the gun's own cone on top)
   const sig=.36/Math.sqrt(-2*Math.log(1-p));
   const hx=cx-ox,hz=cz-oz,hl=Math.hypot(hx,hz)||1,px=-hz/hl,pz=hx/hl;let ang=0;
@@ -761,22 +777,23 @@ function botPick(b,it){if(!ITEMS.includes(it))return;if(it.kind==='weapon'){if(b
   removeItem(it)}
 function botPlanLoot(b){const zx=Z.to?Z.to.x:Z.cx,zz=Z.to?Z.to.z:Z.cz,zr=Z.to?Z.to.r:Z.r;
   const inNext=(x,z)=>Math.hypot(x-zx,z-zz)<zr*.95;
-  if(!inNext(b.x,b.z)&&(Z.state==='shrink'||Z.t<25||outZone(b))){const a=Math.atan2(b.z-zz,b.x-zx),r=zr*.6*Math.random();
-    for(let k=0;k<6;k++){const x=zx+Math.cos(a+(Math.random()-.5))*r,z=zz+Math.sin(a+(Math.random()-.5))*r;if(botGoto(b,x,z,()=>{b.idle=1}))return}}
+  if(!inNext(b.x,b.z)&&(Z.state==='shrink'||Z.t<40||outZone(b))){const a=Math.atan2(b.z-zz,b.x-zx),r=zr*.55*Math.random();
+    for(let k=0;k<6;k++){const x=zx+Math.cos(a+(Math.random()-.5))*r,z=zz+Math.sin(a+(Math.random()-.5))*r;if(botGoto(b,x,z,()=>{b.idle=1}))return}if(botRotate(b))return}
+  const late=zoneUrgent(b);
   let best=null,bd=1e9;
   const unarmed=!b.slots.some(s=>s);const others=BOTS.filter(o=>o!==b&&o.alive);
   // stay away from loot other bots are already heading to or standing next to: spreads the early game out
   const crowd=(x,z)=>{let n=0;for(const o of others){if(Math.hypot(o.x-x,o.z-z)<12)n++;else if(o.target&&Math.hypot(o.target.x-x,o.target.z-z)<6)n++}return n*(S.t<120?18:6)};
-  for(const it of ITEMS){if(!wantItem(b,it))continue;const raw=Math.hypot(it.x-b.x,it.z-b.z),d=crowd(it.x,it.z)+raw+(inNext(it.x,it.z)?0:25)-(it.kind==='weapon'?(unarmed?35:10):0);if(d<bd&&raw<(unarmed&&it.kind==='weapon'?90:60)){bd=d;best={x:it.x,z:it.z,fn:()=>botPick(b,it)}}}
+  for(const it of ITEMS){if(!wantItem(b,it)||(late&&!inNext(it.x,it.z)))continue;const raw=Math.hypot(it.x-b.x,it.z-b.z),d=crowd(it.x,it.z)+raw+(inNext(it.x,it.z)?0:25)-(it.kind==='weapon'?(unarmed?35:10):0);if(d<bd&&raw<(unarmed&&it.kind==='weapon'?90:60)){bd=d;best={x:it.x,z:it.z,fn:()=>botPick(b,it)}}}
   for(const dr of drawers.values()){if(dr.opened||dr.claimed&&dr.claimed!==b)continue;const x=dr.px+dr.nx*.85,z=dr.pz+dr.nz*.85,d=crowd(x,z)+Math.hypot(x-b.x,z-b.z)+(unarmed?-5:8)+(inNext(x,z)?0:25);
     if(d<bd&&d<70){bd=d;best={x,z,dr,fn:()=>{b.busyT=.7;b.after=()=>openDrawer(dr)}}}}
   if(best){if(best.dr)best.dr.claimed=b;if(botGoto(b,best.x,best.z,best.fn))return}
   const x=zx+(Math.random()-.5)*zr,z=zz+(Math.random()-.5)*zr;botGoto(b,x,z,()=>{b.idle=1+Math.random()*2})}
 function nextZ(){return Z.to&&Z.state!=='final'?Z.to:{x:Z.cx,z:Z.cz,r:Z.r}}
-function zoneUrgent(b){const n=nextZ(),inN=Math.hypot(b.x-n.x,b.z-n.z)<n.r*.92;return outZone(b)||(!inN&&(Z.state==='shrink'||Z.t<35))}
+function zoneUrgent(b){const n=nextZ(),inN=Math.hypot(b.x-n.x,b.z-n.z)<n.r*.9;return outZone(b)||(!inN&&(Z.state==='shrink'||Z.t<45))}
 function botRotate(b){const n=nextZ();const a=Math.atan2(b.z-n.z,b.x-n.x);
   for(let k=0;k<6;k++){const r=n.r*(.25+Math.random()*.45),aa=a+(Math.random()-.5)*1.2;if(botGoto(b,n.x+Math.cos(aa)*r,n.z+Math.sin(aa)*r,()=>{b.rot=false;b.idle=.5+Math.random()})){b.rot=true;return true}}return false}
-function botFlee(b){const e=b.enemy;let a=Math.atan2(b.z-e.z,b.x-e.x)+(Math.random()-.5);
+function botFlee(b){const e=b.enemy;if((outZone(b)||zoneUrgent(b))&&botRotate(b))return;let a=Math.atan2(b.z-e.z,b.x-e.x)+(Math.random()-.5);
   if(zoneUrgent(b)){const n=nextZ(),za=Math.atan2(n.z-b.z,n.x-b.x);a=Math.atan2(Math.sin(a)*.4+Math.sin(za),Math.cos(a)*.4+Math.cos(za))}
   const d=10+Math.random()*10;botGoto(b,b.x+Math.cos(a)*d,b.z+Math.sin(a)*d,()=>{})}
 // is a crouched body at (x,z) hidden from e's eyes by a wall, car, tree or hill?
@@ -827,6 +844,8 @@ function botUpdate(b,dt){if(!b.alive)return;
     else if(b.mode==='fight'&&!engage(e,d*.75)&&d>14){b.mode='loot';b.enemy=null;b.path=[];b.target=null}
     else{b.mode='fight';b.path=[];b.target=null;b.inCov=0;b.running=false;b.face=Math.atan2(e.x-b.x,e.z-b.z);
       if(b.hp<55&&S.t-(b.hitAt||-99)<.5&&d>8&&Math.random()<b.skill&&goCover(b,e))return;
+      if(outZone(b)&&Z.dps>0&&d>6&&!b.deckC){b.crouch=false;if(!b.rot||(!b.path.length&&!b.target))botRotate(b);
+        if(w.mag>0&&b.seen>b.react&&d<W_.range&&b.cool<=0&&botClear(b,e))fire(b);else if(w.mag<=0&&b.ammo[W_.ammo]>0&&b.reloadT<=0)startReload(b);botMove(b,dt);return}
       if(w.mag<=0){if(b.ammo[W_.ammo]>0){startReload(b);if(d>7&&Math.random()<.35+b.skill*.6&&goCover(b,e))return}else{const alt=b.slots.findIndex(s=>s&&s!==w&&(s.mag>0||b.ammo[WEAP[s.id].ammo]>0));if(alt>=0)b.cur=alt;else{b.mode='flee';botFlee(b)}}}
       else if(b.seen>b.react+(S.t<90?.35:0)&&d<W_.range*1.1&&!botClear(b,e)){b.noClr=(b.noClr||0)+dt;if(b.noClr>1.5&&tryClimb(b,e)){b.noClr=0;return}}
       else if(b.seen>b.react+(S.t<90?.35:0)&&d<W_.range*1.1){b.noClr=0;b.yaw=b.face;if(fire(b)&&!W_.auto)b.cool+=.08+Math.random()*.25}
@@ -842,8 +861,8 @@ function botUpdate(b,dt){if(!b.alive)return;
   if(!b.enemy&&ME.alive&&S.meRun&&Math.hypot(ME.x-b.x,ME.z-b.z)<12&&Math.random()<dt*2)b.face=Math.atan2(ME.x-b.x,ME.z-b.z);
   if(!b.visE&&b.enemy&&b.mode==='fight'){b.mode='hunt';b.huntT=6;if(!tryClimb(b,b.enemy)&&b.lastE)botGoto(b,b.lastE.x,b.lastE.z,()=>{b.enemy=null;b.mode='loot'})}
   if(b.mode==='hunt'){b.huntT-=dt;if(b.huntT<=0||zoneUrgent(b)){b.enemy=null;b.mode='loot';b.path=[];b.target=null}}
-  b.fleeCd=(b.fleeCd||0)-dt;if(b.mode==='flee'){b.fleeT-=dt;if(b.fleeT<=0||(!b.visE&&!b.path.length)){b.mode='loot';b.enemy=null;b.path=[];b.target=null}}
-  if(b.heardT>0){b.heardT-=dt;if(b.mode==='loot'&&!b.enemy&&w&&Math.random()<dt*.6){b.face=Math.atan2(b.heard.x-b.x,b.heard.z-b.z);if(Math.random()<(S.t<50?.1:(.35+b.skill*.3)*(b.hp>60?1:.3))&&!zoneUrgent(b)){const hd=Math.hypot(b.heard.x-b.x,b.heard.z-b.z),k=Math.max(0,hd-15)/Math.max(hd,1);if(botGoto(b,b.x+(b.heard.x-b.x)*k,b.heard.z*0+b.z+(b.heard.z-b.z)*k,()=>{b.face=Math.atan2(b.heard.x-b.x,b.heard.z-b.z)}))b.thirdN=(b.thirdN||0)+1}}}
+  b.fleeCd=(b.fleeCd||0)-dt;if(b.mode==='flee'&&!b.path.length&&!b.target&&(outZone(b)||zoneUrgent(b)))botRotate(b);if(b.mode==='flee'){b.fleeT-=dt;if(b.fleeT<=0||(!b.visE&&!b.path.length)){b.mode='loot';b.enemy=null;b.path=[];b.target=null}}
+  if(b.heardT>0){b.heardT-=dt;if(b.mode==='loot'&&!b.enemy&&w&&Math.random()<dt*.6){b.face=Math.atan2(b.heard.x-b.x,b.heard.z-b.z);if(Math.random()<(S.t<50?.1:Math.min(1,(.35+b.skill*.3)*(b.hp>60?1:.3)*(ALL.filter(a=>a.alive).length<=4?2.5:1)))&&!zoneUrgent(b)){const hd=Math.hypot(b.heard.x-b.x,b.heard.z-b.z),k=Math.max(0,hd-15)/Math.max(hd,1);if(botGoto(b,b.x+(b.heard.x-b.x)*k,b.heard.z*0+b.z+(b.heard.z-b.z)*k,()=>{b.face=Math.atan2(b.heard.x-b.x,b.heard.z-b.z)}))b.thirdN=(b.thirdN||0)+1}}}
   if(!b.enemy&&b.hp<70&&(b.band||b.med)&&b.mode!=='flee'&&!outZone(b)){b.healT=b.med&&b.hp<40?5:2.5;b.healKind=b.med&&b.hp<40?'med':'band';return}
   if(b.busyT>0){b.busyT-=dt;if(b.busyT<=0&&b.after){const f=b.after;b.after=null;f()}return}
   b.rotCd=(b.rotCd||0)-dt;if(b.rot&&!b.target)b.rot=false;
@@ -879,7 +898,7 @@ const stanceOf=a=>a.me?(S.prone?'prone':(S.crouch||S.slide)?'crouch':'stand'):(a
 
 // ---------- player ----------
 function myPickCandidate(){let best=null,bd=1e9;const fx=-Math.sin(ME.yaw),fz=-Math.cos(ME.yaw);
-  for(const it of ITEMS){if(it.kind!=='weapon')continue;const dx=it.x-ME.x,dz=it.z-ME.z,d=Math.hypot(dx,dz);if(d>1.8||!reachY(it))continue;const sc=d-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'item',it}}}
+  for(const it of ITEMS){if(it.kind!=='weapon'&&!((it.kind==='armor'&&ME.armorLv>0&&ME.armor>0)||(it.kind==='helmet'&&ME.helmLv>0&&ME.helm>0)))continue;const dx=it.x-ME.x,dz=it.z-ME.z,d=Math.hypot(dx,dz);if(d>1.8||!reachY(it))continue;const sc=d-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'item',it}}}
   for(const dr of drawers.values()){if(dr.opened)continue;const dx=dr.px-ME.x,dz=dr.pz-ME.z,d=Math.hypot(dx,dz);if(d>1.7)continue;const sc=d+.3-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'drawer',dr}}}
   for(const dd of doors.values()){if(dd.broken)continue;const c=ctr(dd),dx=c.x-ME.x,dz=c.z-ME.z,d=Math.hypot(dx,dz);if(d>2.1)continue;const sc=d+.6-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'door',dd}}}
   for(const w of wins.values()){const c=ctr(w),dx=c.x-ME.x,dz=c.z-ME.z,d=Math.hypot(dx,dz);if(d>2)continue;const sc=d+.6-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'win',w}}}
@@ -889,6 +908,9 @@ function myUse(c){if(!c)return;
     if(it.kind==='weapon'){const dr=giveWeapon(ME,it.id,it.r,it.optic);if(dr)spawnItem({kind:'weapon',id:dr.id,r:dr.r||0,optic:dr.optic||null},ME.x,ME.z);toast(it,'を拾った')}
     else if(it.kind==='optic'){const t=opticTarget(it.id);if(!t){say('この照準器を付けられる武器を持っていない');return}
       if(t.optic)spawnItem({kind:'optic',id:t.optic},ME.x+.4,ME.z);t.optic=it.id;if(t===wpn(ME))buildVm(t.id,t.r||0);say(`${OPTICS[it.id].n}を${WEAP[t.id].name}に付けた`,1.5)}
+    else if(it.kind==='armor'||it.kind==='helmet'){const isV=it.kind==='armor',lv=isV?ME.armorLv:ME.helmLv,hp=isV?ME.armor:ME.helm;
+      if(lv>0&&hp>0)spawnItem({kind:it.kind,lv,hp:Math.round(hp)},ME.x+.6*Math.cos(ME.yaw),ME.z-.6*Math.sin(ME.yaw));if(isV){ME.armorLv=it.lv;ME.armor=it.hp}else{ME.helmLv=it.lv;ME.helm=it.hp}
+      removeItem(it);toast(it,'に交換した');tone(500,'triangle',.06,.12,800);return}
     else{if(it.kind==='ammo')ME.ammo[it.id]+=it.amt;else if(it.kind==='bandage')ME.band+=it.amt;else if(it.kind==='medkit')ME.med++;toast(it,'を拾った')}
     removeItem(it);tone(700,'triangle',.05,.06)}
   else if(c.type==='drawer'){S.useT={t:.5,fn:()=>openDrawer(c.dr)}}
@@ -898,7 +920,9 @@ function myUse(c){if(!c)return;
 // the gun an optic goes on: the one in hand if it fits, else the other one
 function opticTarget(o){const c=wpn(ME);if(fitsOptic(c,o))return c;return ME.slots.find(s=>fitsOptic(s,o))||null}
 function useLabel(c){const K='E：';if(!c)return'';
-  if(c.type==='item'){const it=c.it;if(it.kind==='weapon'&&ME.slots.every(s=>s))return K+WEAP[it.id].name+'と持ち替える';if(it.kind==='optic'){const t=opticTarget(it.id);return t?K+OPTICS[it.id].n+'を'+WEAP[t.id].name+'に付ける':OPTICS[it.id].n+'（付けられる武器がない）'}return K+itemLabel(it)+'を拾う'}
+  if(c.type==='item'){const it=c.it;if(it.kind==='weapon'&&ME.slots.every(s=>s))return K+WEAP[it.id].name+'と持ち替える';if(it.kind==='optic'){const t=opticTarget(it.id);return t?K+OPTICS[it.id].n+'を'+WEAP[t.id].name+'に付ける':OPTICS[it.id].n+'（付けられる武器がない）'}
+    if(it.kind==='armor'||it.kind==='helmet'){const isV=it.kind==='armor',lv=isV?ME.armorLv:ME.helmLv,hp=isV?ME.armor:ME.helm,cap=(isV?VEST:HELM)[lv].cap;return K+itemLabel(it)+`と交換（今：Lv${lv} 耐久${Math.round(hp)}/${cap}）`}
+    return K+itemLabel(it)+'を拾う'}
   if(c.type==='drawer')return K+'ロッカーを開ける';if(c.type==='door')return K+(c.dd.open?'扉を閉める':'扉を開ける');
   if(c.type==='win')return K+(c.w.state==='closed'?'窓を開ける':'窓を乗り越える');return''}
 function myHeal(kind){if(ME.healT>0){ME.healT=0;say('回復をやめた');return}if(ME.hp>=100){say('体力は満タン');return}
@@ -908,7 +932,7 @@ function myHeal(kind){if(ME.healT>0){ME.healT=0;say('回復をやめた');return
 const itY=it=>it.y!==undefined?it.y:groundY(it.x,it.z),reachY=it=>Math.abs(itY(it)-ME.y)<1.2;
 function autoPickup(){for(const it of ITEMS.slice()){if(it.kind==='weapon'||it.kind==='optic')continue;if(Math.hypot(it.x-ME.x,it.z-ME.z)>1.1||!reachY(it))continue;
     if(it.kind==='armor'||it.kind==='helmet'){const isV=it.kind==='armor',lv=isV?ME.armorLv:ME.helmLv,hp=isV?ME.armor:ME.helm;
-      if(!(it.lv>lv||(it.lv===lv&&it.hp>hp+10)))continue;removeItem(it);if(lv>0&&hp>6)spawnItem({kind:it.kind,lv,hp:Math.round(hp)},ME.x+.8,ME.z);
+      if(lv>0&&hp>0)continue;removeItem(it);if(lv>0&&hp>6)spawnItem({kind:it.kind,lv,hp:Math.round(hp)},ME.x+.8,ME.z);
       if(isV){ME.armorLv=it.lv;ME.armor=it.hp}else{ME.helmLv=it.lv;ME.helm=it.hp}toast(it,'を装備した');tone(500,'triangle',.06,.12,800);continue}
     else if(it.kind==='ammo')ME.ammo[it.id]+=it.amt;
     else if(it.kind==='bandage')ME.band+=it.amt;
@@ -919,7 +943,7 @@ function autoPickup(){for(const it of ITEMS.slice()){if(it.kind==='weapon'||it.k
 // ---------- input ----------
 const btn={fire:false,ads:false,run:false};const tap={use:false,reload:false,swap:false,heal:false,jump:false,s1:false,s2:false};
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;btn.fire=btn.ads=btn.run=false});
-addEventListener('keydown',e=>{keys[e.code]=true;if(!e.repeat){if(e.code==='KeyE')tap.use=true;if(e.code==='KeyR')tap.reload=true;if(e.code==='KeyQ')tap.swap=true;if(e.code==='KeyH'||e.code==='Digit4')tap.band=true;if(e.code==='KeyX'||e.code==='Digit5')tap.med=true;if(e.code==='KeyC')tap.crouch=true;
+addEventListener('keydown',e=>{if(SPEC.on){if(e.code==='Escape')specStop();else if(e.code==='Space'||e.code==='ArrowRight'||e.code==='KeyD')specNext(1);else if(e.code==='ArrowLeft'||e.code==='KeyA')specNext(-1);return}keys[e.code]=true;if(!e.repeat){if(e.code==='KeyE')tap.use=true;if(e.code==='KeyR')tap.reload=true;if(e.code==='KeyQ')tap.swap=true;if(e.code==='KeyH'||e.code==='Digit4')tap.band=true;if(e.code==='KeyX'||e.code==='Digit5')tap.med=true;if(e.code==='KeyC')tap.crouch=true;
   if(e.code==='Space')tap.jump=true;if(e.code==='KeyZ')tap.prone=true;if(e.code==='Digit1')tap.s1=true;if(e.code==='Digit2')tap.s2=true}if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault()});
 addEventListener('keyup',e=>{keys[e.code]=false});
 addEventListener('wheel',e=>{if(!ME||!ME.alive||S.over||!$('overlay').hidden||paused)return;const now=performance.now();if(now-(S.wheelT||0)<180)return;S.wheelT=now;tap.swap=true},{passive:true});
@@ -933,7 +957,7 @@ function look(dx,dy,k){k*=SENS;const w_=wpn(ME),ak=S.adsK||0,s=1+((w_?adsSensW(w
 const cvEl=$('cv');
 function lockPointer(){try{const p=cvEl.requestPointerLock();if(p&&p.catch)p.catch(()=>{})}catch(_){}}
 document.addEventListener('mousedown',e=>{if(document.pointerLockElement!==cvEl)return;if(e.button===0){btn.fire=true;S.fireBuf=.18}if(e.button===2)btn.adsM=true});
-cvEl.addEventListener('pointerdown',e=>{if(document.pointerLockElement!==cvEl)lockPointer()});
+cvEl.addEventListener('pointerdown',e=>{if(SPEC.on){specNext(1);return}if(document.pointerLockElement!==cvEl)lockPointer()});
 
 cvEl.addEventListener('pointerup',e=>{if(e.button===0)btn.fire=false;if(e.button===2)btn.adsM=false});
 addEventListener('mouseup',e=>{if(e.button===0)btn.fire=false;if(e.button===2)btn.adsM=false});
@@ -964,7 +988,8 @@ function hud(){const alive=ALL.filter(a=>a.alive).length;$('alive').textContent=
     $('gear').innerHTML=tile('armor',ME.armorLv,ME.armor,ME.armorLv?VEST[ME.armorLv].cap:1,'防弾ベスト')+tile('helmet',ME.helmLv,ME.helm,ME.helmLv?HELM[ME.helmLv].cap:1,'ヘルメット')}
   $('hpnum').textContent=Math.ceil(Math.max(0,ME.hp));
   const zt=Z.state==='wait'?`安全地帯が縮むまで <b>${fmt(Z.t)}</b>`:Z.state==='shrink'?`<b class="warn">縮小中</b> ${fmt(Z.t)}`:'<b class="warn">最終局面</b>';
-  $('zone').innerHTML=zt+(outZone(ME)?`<br><b class="warn">安全地帯の外！ 毎秒${Z.dps}ダメージ</b>`:'');
+  const nz=nextZ(),zdx=nz.x-ME.x,zdz=nz.z-ME.z,zd=Math.hypot(zdx,zdz)-nz.r;const zarr=zd>0&&ME.alive?`<br>次の安全地帯まで <span class="zarr" style="transform:rotate(${(ME.yaw-Math.atan2(-zdx,-zdz)).toFixed(2)}rad)">▲</span> <b>${Math.round(zd)}m</b>`:'';
+  $('zone').innerHTML=zt+zarr+(outZone(ME)?`<br><b class="warn">安全地帯の外！ 毎秒${Z.dps}ダメージ</b>`:'');
   ME.slots.forEach((s,i)=>{const el=$('slot'+i);el.classList.toggle('on',i===ME.cur);el.style.borderLeft=s?`3px solid ${RAR[s.r||0].c}`:'';el.innerHTML=s?`<i>${i+1}</i>${WEAP[s.id].name}${s.optic?`<small class="opt">${OPTICS[s.optic].s}</small>`:''}<b>${s.mag}<small>/${ME.ammo[WEAP[s.id].ammo]}</small></b>`:`<i>${i+1}</i><span>空き</span>`});
   $('heals').textContent=`包帯 ${ME.band}［H］・救急キット ${ME.med}［X］`;
 
@@ -990,14 +1015,14 @@ function startGame(){
   seedLoot();seedCoverLoot();initZone();if(NET.host)netSendInit(seed);
   showDrop()}
 function setupWorld(seed){
-  ME=null;genMap(SIZE,seed);grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();
+  ME=null;genMap(SIZE,seed);grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();DOORP=new Map();
   S={recap:[],t:0,over:false,cans:[],pings:[],hurt:0,hitMark:0,killMark:0,recoil:0,ads:false,moveAmt:0,flashT:0,vy:0,jumpY:0,useT:null,vault:null};
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];
     if(c==='d')doors.set(kk(x,y),{x,y,open:Math.random()<.35,barr:false,broken:false});
     else if(c==='w'){const ax='#wd'.includes(grid[y][x-1])&&'#wd'.includes(grid[y][x+1]);const a=ax?{x,y:y-1}:{x:x-1,y},b=ax?{x,y:y+1}:{x:x+1,y};const inA=grid[a.y][a.x]==='f';
       wins.set(kk(x,y),{x,y,state:Math.random()<.2?'open':'closed',in:inA?a:b,out:inA?b:a})}
     else if(c==='D')drawers.set(kk(x,y),{x,y,searched:false,loot:null,pad:houseAt(x,y).pad});
-    else if(c==='L')closets.push({x,y,pad:houseAt(x,y).pad});
+
     else if(c==='B')phone={x,y};
     if(robberPass(x,y)&&!'dw'.includes(grid[y][x]))floors.push({x,y})}
   police={...META.police};
@@ -1018,7 +1043,7 @@ function drawDrop(){const cv=$('dropmap');if(!cv)return;const g=cv.getContext('2
   for(const c of COVER){if(!SNAME[c.k])continue;const x0=c.x*T*s,z0=c.y*T*s,w=c.w*T*s,h=c.h*T*s,big=c.k==='hq'||c.k==='ship';
     g.strokeStyle=big?'#ffb347':'#cfe8ff';g.lineWidth=big?2:1.2;g.strokeRect(x0+.5,z0+.5,w-1,h-1);
     const hi=ITEMS.filter(it=>it.y!==undefined&&it.kind!=='ammo'&&it.x>=c.x*T-1&&it.x<=(c.x+c.w)*T+1&&it.z>=c.y*T-1&&it.z<=(c.y+c.h)*T+1).length;
-    if(big||hi){const lb=SNAME[c.k]+(hi?' ▲'+hi:'');g.font='bold 11px sans-serif';const tw=g.measureText(lb).width+8,W=g.canvas.width,H=g.canvas.height;
+    if(big||hi){const lb=big?SNAME[c.k]+(hi?' ▲'+hi:''):'▲'+hi;g.font=big?'bold 11px sans-serif':'bold 10px sans-serif';const tw=g.measureText(lb).width+8,W=g.canvas.width,H=g.canvas.height;
       let cx=Math.max(tw/2+2,Math.min(W-tw/2-2,x0+w/2)),cy=z0-7;if(cy<10)cy=z0+h+9;
       for(let k=0;k<6&&LBR.some(r=>Math.abs(r[0]-cx)<(r[2]+tw)/2&&Math.abs(r[1]-cy)<15);k++)cy+=cy<H/2?15:-15;LBR.push([cx,cy,tw]);
       g.fillStyle='rgba(8,14,24,.82)';g.fillRect(cx-tw/2,cy-8,tw,15);g.fillStyle=big?'#ffb347':'#cfe8ff';g.fillText(lb,cx,cy)}}
@@ -1029,8 +1054,8 @@ function showDrop(){const base=document.createElement('canvas'),px=Math.min(440,
     (()=>{const hh=Math.max(0,Math.min(1,(heightAt(x*T+T/2,y*T+T/2)+2)/7));return`rgb(${78+hh*50|0},${48+hh*34|0},${40+hh*26|0})`})();b.fillRect(x*s,y*s,s+.5,s+.5)}
   DROP={base,pick:null,t:20};
   $('card').innerHTML=`<h1><small>CHOOSE YOUR DROP</small>降下地点を選ぶ</h1>
-    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区で、枠付きは構造物、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、${NET.on?'仲間以外の':'ほかの'}${CFG.players-1-(NET.on?NET.lobby.length-1:0)}人は基地や地区のあちこちに散らばって降りる。</p>
-    <canvas id="dropmap" width="${base.width}" height="${base.height}" style="width:100%;height:auto;border-radius:4px;cursor:crosshair;touch-action:none"></canvas>
+    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区、枠は構造物（オレンジは大型）、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、${NET.on?'仲間以外の':'ほかの'}${CFG.players-1-(NET.on?NET.lobby.length-1:0)}人は基地や地区のあちこちに散らばって降りる。</p>
+    <canvas id="dropmap" width="${base.width}" height="${base.height}" style="width:100%;height:auto;max-height:58vh;object-fit:contain;border-radius:4px;cursor:crosshair;touch-action:none"></canvas>
     <p id="dropinfo" style="font-size:13px;color:var(--dim)">あと <b id="dropt">20</b> 秒で自動で降りる</p>
     <button class="btn" id="dropgo" disabled>ここに降りる</button><button class="btn ghost" id="droprand">おまかせで降りる</button>`;
   const cv=$('dropmap');cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W*T,z=(e.clientY-r.top)/r.height*H*T;
@@ -1051,6 +1076,7 @@ function launch(pick){if(!DROP)return;clearInterval(DROP.timer);DROP=null;
     if(!c)continue;const md=t<2500?18:t<5500?13:7;if(spots.some((p,i)=>Math.hypot(p.x-c.x,p.z-c.z)<(i===0?Math.max(md,20):md)))continue;spots.push(c)}
   spots.forEach((c,i)=>{const a=newActor(i,i===0,c.x,c.z);a.face=a.yaw=Math.random()*6.28;giveWeapon(a,'pistol');a.ammo.light=24;ALL.push(a);if(i===0)ME=a;else BOTS.push(a);
     if(NET.host){if(i===0)a.name=NET.name;else if(i<=humans.length){const h=humans[i-1];a.name=h.name;a.remote=true;a.conn=h.conn;a.human=true;h.conn.actor=a}}});
+  {let best=null,bd=1e9;for(const h of HOUSES){const hx=(h.x+h.w/2)*T,hz=(h.y+h.h/2)*T,d=Math.hypot(hx-ME.x,hz-ME.z);if(d<bd){bd=d;best=[hx,hz]}}if(best)ME.yaw=Math.atan2(-(best[0]-ME.x),-(best[1]-ME.z))}
   if(NET.host)netSendGo();
   ME.r=.3;buildVm('pistol');
   $('stage').classList.add('playing');$('overlay').hidden=true;resize();hud();say(`${n}人のバトルロイヤル開始。${NET.on?'仲間も敵。':''}建物を探して強い武器を拾え`,3.5);lockPointer()}
@@ -1060,22 +1086,39 @@ function end(win){if(S.over)return;S.over=true;$('msg').style.opacity=0;msgT=0;$
     <p>${win?'惑星の採掘基地で、最後まで生き残った。':`倒したのは <b>${ME.lastHitBy?ME.lastHitBy.name:'安全地帯'}</b>。`}</p>
     ${S.recap.length?`<ol class="recap">${S.recap.slice(-6).map(r=>`<li><span>${fmt(r.t)}</span>${r.txt}</li>`).join('')}</ol>`:''}
     <dl class="res"><div><dt>順位</dt><dd>${place} / ${n}</dd></div><div><dt>キル</dt><dd>${ME.kills}</dd></div><div><dt>与ダメージ</dt><dd>${Math.round(ME.dmgDone)}</dd></div><div><dt>生存時間</dt><dd>${fmt(S.t)}</dd></div></dl>
+    ${!win&&ALL.some(a=>a.alive&&!a.me)?'<button class="btn ghost" id="spec">試合の続きを観戦する</button>':''}
     <button class="btn" id="start">同じ人数でもう一度</button><button class="btn ghost" id="menu">人数を選び直す</button>`;
-    $('stage').classList.remove('playing');$('overlay').hidden=false;$('start').onclick=startGame;$('menu').onclick=()=>{$('card').innerHTML=START_HTML;bindStart()}},win?400:1200)}
+    $('stage').classList.remove('playing');$('overlay').hidden=false;$('start').onclick=startGame;$('menu').onclick=()=>{$('card').innerHTML=START_HTML;bindStart()};
+    if($('spec'))$('spec').onclick=()=>specStart(ME.lastHitBy)},win?400:1200)}
+// ---------- spectating after you are out: follow a player from behind, click / Space to switch ----------
+const SPEC={on:false,a:null,cx:0,cy:0,cz:0,done:false};
+function specAlive(){return ALL.filter(a=>a.alive&&!a.me)}
+function specStart(pref){const al=specAlive();if(!al.length)return;SPEC.on=true;SPEC.done=false;SPEC.a=pref&&pref.alive&&!pref.me?pref:al[0];SPEC.cx=undefined;
+  $('overlay').hidden=true;$('stage').classList.add('playing');let el=$('specbar');if(!el){el=document.createElement('div');el.id='specbar';$('stage').appendChild(el)}el.hidden=false}
+function specStop(){SPEC.on=false;const el=$('specbar');if(el)el.hidden=true;$('stage').classList.remove('playing');$('overlay').hidden=false;if(NET.on)netEndCard()}
+function specNext(d){const al=specAlive();if(!al.length)return;const i=al.indexOf(SPEC.a);SPEC.a=al[((i<0?0:i+d)%al.length+al.length)%al.length];SPEC.cx=undefined}
+function specFrame(dt){const al=specAlive();if(!SPEC.a||!SPEC.a.alive){const k=SPEC.a&&SPEC.a.lastHitBy;SPEC.a=k&&k.alive&&!k.me?k:al[0]||null;SPEC.cx=undefined}
+  const el=$('specbar');
+  if(!SPEC.a||ALL.filter(a=>a.alive).length<=1){if(!SPEC.done){SPEC.done=true;const w=ALL.find(a=>a.alive);if(el)el.innerHTML=`<b>${w?esc(w.name)+' の勝利':'試合終了'}</b>`;say(w?`${w.name}が最後の1人になった`:'試合終了',3);setTimeout(()=>{if(SPEC.on)specStop()},3500)}if(!SPEC.a)return}
+  const a=SPEC.a,ay=AY(a),f=a.face,hx=a.x,hy=ay+1.55,hz=a.z;let bx=-Math.sin(f),bz=-Math.cos(f),dist=3.4;
+  const L=Math.hypot(bx*dist,.9,bz*dist),r=rayHit(hx,hy,hz,bx*dist/L,.9/L,bz*dist/L,L,a,false);const k=r.solid||r.actor?Math.max(.4,(r.t-.3)/L):1;
+  const tx=hx+bx*dist*k,ty=hy+.9*k,tz=hz+bz*dist*k;if(SPEC.cx===undefined){SPEC.cx=tx;SPEC.cy=ty;SPEC.cz=tz}const m=Math.min(1,dt*8);SPEC.cx+=(tx-SPEC.cx)*m;SPEC.cy+=(ty-SPEC.cy)*m;SPEC.cz+=(tz-SPEC.cz)*m;
+  cam.position.set(SPEC.cx,SPEC.cy,SPEC.cz);cam.lookAt(hx,hy-.1,hz);ME.x=a.x;ME.z=a.z;
+  if(el&&!SPEC.done){const w=wpn(a);el.innerHTML=`観戦中：<b>${esc(a.name)}</b>　体力${Math.max(0,Math.round(a.hp))}${a.armorLv?'　ベストLv'+a.armorLv:''}${w?'　'+WEAP[w.id].name:''}　キル${a.kills||0}　残り${ALL.filter(x=>x.alive).length}人<span>クリック／Space：次の人　Esc：結果に戻る</span>`}}
 
-function resize(){const r=cvEl.getBoundingClientRect();R.setSize(r.width,r.height,false);cam.aspect=r.width/Math.max(1,r.height);cam.updateProjectionMatrix()}
+const AQ={t:0,sum:0,n:0,lv:0},PXB=[1.3e6,1.3e6,.9e6,.6e6];
+function resize(){const r=cvEl.getBoundingClientRect(),px=Math.max(1,r.width*r.height);R.setPixelRatio(Math.max(.5,Math.min(devicePixelRatio||1,1.5,Math.sqrt(PXB[AQ.lv]/px))));R.setSize(r.width,r.height,false);cam.aspect=r.width/Math.max(1,r.height);cam.updateProjectionMatrix()}
 addEventListener('resize',resize);
 let last=0,hudT=0;
 function frame(now){if(DROP){requestAnimationFrame(frame);return}const dt=Math.min(.05,(now-last)/1000||0);last=now;
   if(ME&&!S.over&&!paused&&$('overlay').hidden){let d2=dt;if(S.hitStop>0){S.hitStop-=dt;d2=NET.on?dt:dt*.25}tick(d2)}
   else if(ME&&NET.host&&!NET.done)hostWorld(dt);
-  else if(ME&&S.over&&!NET.on){for(const b of BOTS)if(b.alive)botUpdate(b,dt*.5)}
+  else if(ME&&S.over&&!NET.on){if(SPEC.on&&!SPEC.done)hostWorld(dt);else for(const b of BOTS)if(b.alive)botUpdate(b,dt*.5)}
   if(ME&&NET.on)netFrame(dt);
   if(ME)render(now,dt);if(ME&&!S.over&&!paused)autoQuality(dt);requestAnimationFrame(frame)}
 // adaptive quality: if the frame rate stays low, shorten the detailed-tree radius, thin the grass, then drop the pixel ratio
-const AQ={t:0,sum:0,n:0,lv:0};
 function autoQuality(dt){if(AQ.lv>=3||dt<=0)return;AQ.t+=dt;AQ.sum+=dt;AQ.n++;if(AQ.t<2.5)return;const fps=AQ.n/AQ.sum;AQ.t=AQ.sum=AQ.n=0;if(fps>=42)return;AQ.lv++;
-  if(AQ.lv===1){VEG.hiR=18;VEG.grassN=550}else if(AQ.lv===2){VEG.hiR=12;VEG.grassN=200;R.setPixelRatio(1);resize()}else{VEG.hiR=0;VEG.grassN=0;R.setPixelRatio(.8);resize()}VEG.cx=1e9}
+  if(AQ.lv===1){VEG.hiR=18;VEG.grassN=550}else if(AQ.lv===2){VEG.hiR=12;VEG.grassN=200}else{VEG.hiR=0;VEG.grassN=0}resize();VEG.cx=1e9}
 // climb onto / over low obstacles in front (car hoods and roofs, crates) with the jump key; open or broken windows are vaulted through
 function tryMantle(){const fx=-Math.sin(ME.yaw),fz=-Math.cos(ME.yaw);
   for(const w of wins.values()){if(w.state==='closed')continue;const c=ctr(w);if(Math.hypot(c.x-ME.x,c.z-ME.z)<1.5&&((c.x-ME.x)*fx+(c.z-ME.z)*fz)>.3){myUse({type:'win',w});return true}}
@@ -1169,6 +1212,7 @@ function render(now,dt){
   const w=wpn(ME),isScope=scopedW(w),ek=adk*adk*(3-2*adk),scope=isScope&&adk>.85;
   cam.position.set(ME.x,ME.gy+S.eyeH+(S.prone?bob*.3:bob)+vy-S.land-(ME.alive?0:1.3),ME.z);cam.rotation.set(ME.pitch,ME.yaw,ME.alive?0:.6);
   S.fovKick=Math.max(0,(S.fovKick||0)-dt*30);const fov=74+(adsFovW(w)-74)*ek+S.fovKick*(1-ek);if(Math.abs(cam.fov-fov)>.01){cam.fov=fov;cam.updateProjectionMatrix()}
+  if(SPEC.on)specFrame(dt);
   const vmOn=ME.alive&&!scope;if(vmOn)updateVm(dt,ek);S.flashT-=dt;
   $('scope').hidden=!scope;$('cross').hidden=!!scope||!ME.alive||(adk>.6&&!!w);
   const spread=w?mySpread(WEAP[w.id]):.02;$('cross').style.setProperty('--g',(8+spread*700)+'px');
@@ -1189,9 +1233,9 @@ function bindStart(){$('start').onclick=startGame;bindNet();bindSens();bindSight
 /*NET*/
 bindStart();
 // a living backdrop behind the start card
-(function preview(){grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();S={cans:[],pings:[]};
+(function preview(){grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();DOORP=new Map();S={cans:[],pings:[]};
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];if(c==='d')doors.set(kk(x,y),{x,y,open:false});else if(c==='w'){const ax='#wd'.includes(grid[y][x-1])&&'#wd'.includes(grid[y][x+1]);const a=ax?{x,y:y-1}:{x:x-1,y},b=ax?{x,y:y+1}:{x:x+1,y};const inA=grid[a.y][a.x]==='f';wins.set(kk(x,y),{x,y,state:'closed',in:inA?a:b,out:inA?b:a})}
-    else if(c==='D')drawers.set(kk(x,y),{x,y,pad:houseAt(x,y).pad});else if(c==='L')closets.push({x,y,pad:houseAt(x,y).pad});else if(c==='B')phone={x,y}}
+    else if(c==='D')drawers.set(kk(x,y),{x,y,pad:houseAt(x,y).pad});else if(c==='B')phone={x,y}}
   police={...META.police};buildWorld();police.mesh.visible=false;zoneMesh.visible=false;
   resize();const h=HOUSES[0];cam.position.set((h.x+h.w/2)*T+10,h.pad+3.2,(h.y+h.h+6)*T);cam.lookAt((h.x+h.w/2)*T,h.pad+1.5,(h.y+h.h/2)*T);
   (function pv(){if(ME){zoneMesh.visible=true;return}R.render(scene,cam);requestAnimationFrame(pv)})()})();

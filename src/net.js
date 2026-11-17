@@ -100,7 +100,7 @@ function clientRecv(m){
   if(m.t==='is'){NET.applying=true;try{for(const o of m.l)if(!ITEMS.some(i=>i.nid===o.n)){const it=des(o);spawnItem(it,o.x,o.z,o.y)}}finally{NET.applying=false}return}
   if(m.t==='ir'){const it=ITEMS.find(i=>i.nid===m.n);if(it){NET.applying=true;try{removeItem(it)}finally{NET.applying=false}}return}
   if(m.t==='ws'){applyWS(m.ws);return}
-  if(m.t==='over'){NET.done=true;if(m.w===NET.myI&&ME.alive)end(true);else netEndCard();return}}
+  if(m.t==='over'){NET.done=true;if(m.w===NET.myI&&ME.alive)end(true);else if(!SPEC.on)netEndCard();return}}
 function applyWS(ws){const now=performance.now();NET.applying=true;try{
   let i=0;for(const[k,x]of doors){const c=+ws.d[i++];if((NET.hold[k]||0)>now)continue;x.open=!!(c&1);x.broken=!!(c&2)}
   i=0;for(const[k,x]of wins){const c=ws.w[i++];if((NET.hold[k]||0)>now)continue;const st=c==='o'?'open':c==='b'?'broken':'closed';if(x.state!==st)setWin(x,st)}
@@ -111,8 +111,8 @@ function clientInit(m){if(DROP){clearInterval(DROP.timer);DROP=null}SIZE=m.size;
   ITEMS=[];NET.applying=true;try{for(const o of m.items){const it=des(o);spawnItem(it,o.x,o.z,o.y)}}finally{NET.applying=false}
   Z=m.z;NET.lobby=m.lobby.map(n=>({name:n}));$('stage').classList.remove('playing');$('overlay').hidden=false;showDrop()}
 function clientGo(m){if(DROP){clearInterval(DROP.timer);DROP=null}ALL=[];BOTS=[];NET.byI=[];NET.myI=m.me;
-  for(const d of m.a){const me=d.i===m.me,a=newActor(d.i,me,d.x,d.z);a.name=d.n;a.face=a.yaw=d.f;a.human=d.h;a.tx=d.x;a.tz=d.z;giveWeapon(a,'pistol');a.ammo.light=24;ALL.push(a);NET.byI[d.i]=a;if(me)ME=a;else BOTS.push(a)}
-  if(!ME){netReset('参加に失敗した。');return}ME.yaw=0;S.t=m.t0;ME.r=.3;buildVm('pistol');
+  for(const d of m.a){const me=d.i===m.me,a=newActor(d.i,me,d.x,d.z);a.name=d.n;a.face=a.yaw=d.f;a.human=d.h;a.tx=d.x;a.tz=d.z;a.tf=d.f;a.ty=groundY(d.x,d.z);giveWeapon(a,'pistol');a.ammo.light=24;ALL.push(a);NET.byI[d.i]=a;if(me)ME=a;else BOTS.push(a)}
+  if(!ME){netReset('参加に失敗した。');return}{let best=null,bd=1e9;for(const h of HOUSES){const hx=(h.x+h.w/2)*T,hz=(h.y+h.h/2)*T,d=Math.hypot(hx-ME.x,hz-ME.z);if(d<bd){bd=d;best=[hx,hz]}}ME.yaw=best?Math.atan2(-(best[0]-ME.x),-(best[1]-ME.z)):0}S.t=m.t0;ME.r=.3;buildVm('pistol');
   $('stage').classList.add('playing');$('overlay').hidden=true;resize();hud();say(`${ALL.length}人のバトルロイヤル開始。仲間も敵。建物を探して強い武器を拾え`,3.5);lockPointer()}
 function clientSnap(m){if(ME.alive||Math.abs(S.t-m.st)>1)S.t=m.st;const st0=Z&&Z.state;Z=m.z;if(st0==='wait'&&Z.state==='shrink')say('安全地帯が縮み始めた！',3);
   for(const e of m.a){const a=NET.byI[e[0]];if(!a||a.me)continue;a.tx=e[1];a.tz=e[2];a.ty=e[3];a.tf=e[4];a.pitch=e[5];flagsTo(a,e[6]);a.walk=e[7];
@@ -123,7 +123,7 @@ function clientSnap(m){if(ME.alive||Math.abs(S.t-m.st)>1)S.t=m.st;const st0=Z&&Z
 function netFrame(dt){const now=performance.now();
   if(NET.client){// smooth the others toward the last snapshot
     const k=Math.min(1,dt*14);for(const a of BOTS){if(a.tx===undefined)continue;if(Math.hypot(a.tx-a.x,a.tz-a.z)>6){a.x=a.tx;a.z=a.tz}else{a.x+=(a.tx-a.x)*k;a.z+=(a.tz-a.z)*k}
-      a.y=a.y===undefined?a.ty:a.y+(a.ty-a.y)*k;let df=(a.tf-a.face)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;a.face+=df*k}
+      if(!isFinite(a.ty))a.ty=groundY(a.tx,a.tz);if(!isFinite(a.tf))a.tf=a.face||0;if(!isFinite(a.face))a.face=a.tf;a.y=!isFinite(a.y)?a.ty:a.y+(a.ty-a.y)*k;let df=(a.tf-a.face)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;a.face+=df*k}
     if(now-NET.pT>50&&ME.alive){NET.pT=now;const w=wpn(ME),m={t:'p',x:r2(ME.x),z:r2(ME.z),y:r2(ME.y??groundY(ME.x,ME.z)),yaw:r2(ME.yaw),pi:r2(ME.pitch),f:flagsOf(ME),wk:r2(ME.walk),w:w?w.id:'',wr:w?w.r||0:0,wo:w?w.optic||'':'',hp:Math.round(ME.hp),al:ME.armorLv,hl:ME.helmLv};
       if(now-NET.invT>1000){NET.invT=now;m.inv=inv(ME)}netSend(m)}}
   if(NET.host&&ALL.length){if(now-NET.sT>50){NET.sT=now;bcast(snapshot())}

@@ -97,6 +97,10 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
   .net{display:grid;gap:8px;margin-bottom:6px}.netrow{display:flex;gap:8px}.netrow input{flex:1;min-width:0;background:rgba(10,20,32,.8);color:inherit;border:1px solid rgba(120,200,255,.35);border-radius:4px;padding:8px 10px;font:inherit}
   .btn.sm{padding:8px 14px;font-size:14px;width:auto;margin:0;white-space:nowrap}.netdim{font-size:12px;color:var(--dim);margin:0}.netwarn{font-size:13px;color:#ff9a8a;margin:0}
   .netcode{font-size:22px;letter-spacing:.12em;color:#8ee6ff}.neturl{word-break:break-all;color:#cfe8ff}.netlist{margin:4px 0;padding-left:20px;font-size:14px}
+
+  #specbar{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(8,14,24,.82);border:1px solid rgba(120,200,255,.35);border-radius:6px;padding:8px 14px;font-size:14px;color:#dff2ff;text-align:center;z-index:30;pointer-events:none;max-width:calc(100% - 32px)}
+  #specbar b{color:#8ee6ff}#specbar span{display:block;font-size:11px;color:var(--dim);margin-top:2px}
+  .zarr{display:inline-block;color:#8ee6ff;font-size:11px;line-height:1}
 </style>
 
 <div id="stage">
@@ -144,7 +148,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
       <h2>武器と道具</h2>
       <ul>
         <li>ハンドガン・サブマシンガン・ショットガン・アサルトライフル・ボルトアクション（スコープ付き・1発ずつ装填）。弾は小口径・中口径・散弾・大口径の4種類。ショットガンは1発ずつ込める</li>
-        <li>包帯（75まで回復）、救急キット（全回復）、防弾ベストとヘルメット（Lv1〜3・ダメージを軽減）。弾・回復・防具は上を歩くだけで拾える（近づくと名前が出る）。武器だけは拾うボタンで持ち替える。頭に当てるとダメージが大きい</li>
+        <li>包帯（75まで回復）、救急キット（全回復）、防弾ベストとヘルメット（Lv1〜3・ダメージを軽減）。弾・回復は上を歩くだけで拾える（近づくと名前が出る）。防具は何も着ていなければ歩くだけで着る。着ているときと武器は、拾うボタンで好きなものと交換する（防具の耐久は名前の横に出る）。頭に当てるとダメージが大きい</li>
         <li>伏せると見つかりにくく、弾も当たりにくい（動きは遅くなる）。車の上には跳んで乗れる（ボンネットから屋根へ）。開始から15秒間は誰も撃てない。倒した相手は持ち物を全部その場に落とす。青い壁の外は安全地帯の外で、毎秒ダメージを受ける</li>
       </ul>
       <h2>操作</h2>
