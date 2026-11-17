@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>
-(function(){function show(m){var d=document.getElementById('errbox');if(!d){d=document.createElement('div');d.id='errbox';d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#3a0d12;color:#ffd6d6;border:1px solid #ff6b6b;border-radius:6px;padding:10px 12px;font:13px/1.5 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto';(document.body||document.documentElement).appendChild(d);d.textContent='エラーが出ました。この文章をそのままClaudeに送ってください。\n\n'}d.textContent+=m+'\n'}
+(function(){var seen={},n=0;function show(m){var key=String(m).split('\n')[0];if(seen[key]||n>=3)return;seen[key]=1;n++;var d=document.getElementById('errbox');if(!d){d=document.createElement('div');d.id='errbox';d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#3a0d12;color:#ffd6d6;border:1px solid #ff6b6b;border-radius:6px;padding:10px 12px;font:13px/1.5 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto';(document.body||document.documentElement).appendChild(d);d.textContent='エラーが出ました（×で閉じられます）。この文章をそのままClaudeに送ってください。\n\n';var x=document.createElement('button');x.textContent='×';x.style.cssText='position:absolute;top:4px;right:6px;background:none;border:0;color:#ffd6d6;font-size:18px;cursor:pointer';x.onclick=function(){d.remove()};d.appendChild(x);setTimeout(function(){if(d.parentNode)d.remove()},20000)}d.appendChild(document.createTextNode(m+'\n'))}
 window.addEventListener('error',function(e){if(!e.message)return;show((e.message||'error')+(e.filename?'  ('+e.filename.split('/').pop()+':'+e.lineno+':'+e.colno+')':'')+(e.error&&e.error.stack?'\n'+e.error.stack.split('\n').slice(0,4).join('\n'):''))},true);
 window.addEventListener('unhandledrejection',function(e){show('Promise: '+(e.reason&&(e.reason.stack||e.reason.message)||e.reason))});
 window.addEventListener('load',function(){setTimeout(function(){if(typeof THREE==='undefined')show('three.js が読み込めていません（lib フォルダがあるか確認）');else{try{var c=document.createElement('canvas');if(!(c.getContext('webgl2')||c.getContext('webgl')))show('このブラウザ／表示ではWebGLが使えません。ChromeやEdgeで開いてください');}catch(x){}}},500)});
@@ -112,6 +112,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
   #specbar{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(8,14,24,.82);border:1px solid rgba(120,200,255,.35);border-radius:6px;padding:8px 14px;font-size:14px;color:#dff2ff;text-align:center;z-index:30;pointer-events:none;max-width:calc(100% - 32px)}
   #specbar b{color:#8ee6ff}#specbar span{display:block;font-size:11px;color:var(--dim);margin-top:2px}
   .zarr{display:inline-block;color:#8ee6ff;font-size:11px;line-height:1}
+  .netcpu{display:flex;gap:8px;align-items:center;font-size:14px;margin:2px 0 6px;cursor:pointer}.netcpu input{width:18px;height:18px}
 </style>
 
 <div id="stage">
@@ -1597,6 +1598,9 @@ function itemLabel(it){return it.kind==='optic'?OPTICS[it.id].n:it.kind==='weapo
 function seedLoot(){ITEMS=[];
   for(const h of HOUSES){const n=h.shed?1:2+((Math.random()*2)|0);const opts=[];for(let y=h.y+1;y<h.y+h.h-1;y++)for(let x=h.x+1;x<h.x+h.w-1;x++)if(grid[y][x]==='f')opts.push({x,y});
     for(let k=0;k<n&&opts.length;k++){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);rollLoot(k===0&&!h.shed).forEach((it,j)=>spawnItem(it,c.x+(Math.random()-.5)*.8+j*.5,c.z+(Math.random()-.5)*.8))}
+    // every building also has a spare box of ammo (a type that matches a gun already there when there is one)
+    if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),gun=ITEMS.find(i=>i.kind==='weapon'&&TX(i.x)>=h.x&&TX(i.x)<h.x+h.w&&TX(i.z)>=h.y&&TX(i.z)<h.y+h.h);
+      const t=gun&&Math.random()<.6?WEAP[gun.id].ammo:['light','light','medium','medium','shell','heavy'][(Math.random()*6)|0];spawnItem({kind:'ammo',id:t,amt:t==='shell'?10:t==='heavy'?10:t==='medium'?30:36},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
     if(!h.shed&&opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),lv=rollLv();spawnItem(Math.random()<.5?{kind:'armor',lv,hp:VEST[lv].cap}:{kind:'helmet',lv,hp:HELM[lv].cap},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
     if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);spawnItem(Math.random()<.75?{kind:'bandage',amt:Math.random()<.6?1:2}:{kind:'medkit',amt:1},c.x+(Math.random()-.5)*.8,c.z+(Math.random()-.5)*.8)}}
   for(const c of CARS){const cx=c.dir==='x'?(c.tx+1)*T:c.tx*T+T/2,cz=c.dir==='x'?c.ty*T+T/2:(c.ty+1)*T;const ox=c.dir==='x'?0:1.6,oz=c.dir==='x'?1.6:0;
@@ -1609,7 +1613,7 @@ function newActor(i,isMe,x,z){const a={i,me:isMe,name:isMe?'あなた':'CPU'+i,x
   if(!isMe){a.skill=.3+Math.random()*.55;a.aggr=Math.random();a.react=.35+Math.random()*.4;a.path=[];a.target=null;a.mode='loot';a.lookT=Math.random()*.3;a.enemy=null;a.seen=0;a.idle=Math.random();
     a.strafe=Math.random()<.5?1:-1;a.strafeT=0;a.mesh=buildRig(i+1);world.add(a.mesh.g)}
   return a}
-const wpn=a=>a.slots[a.cur];
+const wpn=a=>a?a.slots[a.cur]:null;
 function giveWeapon(a,id,r,optic){const free=a.slots.findIndex(s=>!s);const w={id,r:r||0,optic:a.me?myOptic(id):(optic||null)};w.mag=wMag(w);let dropped=null;
   if(free>=0){a.slots[free]=w;if(!wpn(a))a.cur=free;if(a.me&&free!==a.cur){}if(a.me&&!a.slots[a.cur])a.cur=free}
   else{dropped=a.slots[a.cur];a.slots[a.cur]=w}
@@ -1993,7 +1997,7 @@ function setSens(v){SENS=v;try{localStorage.setItem('dr_sens',String(v))}catch(_
 function bindSens(){$$('.sens').forEach(el=>{el.value=SENS;el.oninput=()=>setSens(parseFloat(el.value))});setSens(SENS)}
 const ADSSENS=Math.tan(29*Math.PI/180)/Math.tan(37*Math.PI/180),adsSensW=w=>Math.tan(adsFovW(w)/2*Math.PI/180)/Math.tan(37*Math.PI/180);
 
-function look(dx,dy,k){k*=SENS;const w_=wpn(ME),ak=S.adsK||0,s=1+((w_?adsSensW(w_):ADSSENS)-1)*ak;ME.yaw-=dx*k*s;VM.swX=Math.max(-.06,Math.min(.06,VM.swX+dx*k*s*.35));VM.swY=Math.max(-.05,Math.min(.05,VM.swY+dy*k*s*.35));ME.pitch=Math.max(-1.3,Math.min(1.3,ME.pitch-dy*k*s))}
+function look(dx,dy,k){if(!ME||SPEC.on)return;k*=SENS;const w_=wpn(ME),ak=S.adsK||0,s=1+((w_?adsSensW(w_):ADSSENS)-1)*ak;ME.yaw-=dx*k*s;VM.swX=Math.max(-.06,Math.min(.06,VM.swX+dx*k*s*.35));VM.swY=Math.max(-.05,Math.min(.05,VM.swY+dy*k*s*.35));ME.pitch=Math.max(-1.3,Math.min(1.3,ME.pitch-dy*k*s))}
 const cvEl=$('cv');
 function lockPointer(){try{const p=cvEl.requestPointerLock();if(p&&p.catch)p.catch(()=>{})}catch(_){}}
 document.addEventListener('mousedown',e=>{if(document.pointerLockElement!==cvEl)return;if(e.button===0){btn.fire=true;S.fireBuf=.18}if(e.button===2)btn.adsM=true});
@@ -2094,7 +2098,7 @@ function showDrop(){const base=document.createElement('canvas'),px=Math.min(440,
     (()=>{const hh=Math.max(0,Math.min(1,(heightAt(x*T+T/2,y*T+T/2)+2)/7));return`rgb(${78+hh*50|0},${48+hh*34|0},${40+hh*26|0})`})();b.fillRect(x*s,y*s,s+.5,s+.5)}
   DROP={base,pick:null,t:20};
   $('card').innerHTML=`<h1><small>CHOOSE YOUR DROP</small>降下地点を選ぶ</h1>
-    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区、枠は構造物（オレンジは大型）、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、${NET.on?'仲間以外の':'ほかの'}${CFG.players-1-(NET.on?NET.lobby.length-1:0)}人は基地や地区のあちこちに散らばって降りる。</p>
+    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区、枠は構造物（オレンジは大型）、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、${NET.on?'仲間以外の':'ほかの'}${NET.on&&NET.noCpu?'':CFG.players-1-(NET.on?NET.lobby.length-1:0)}${NET.on&&NET.noCpu?'仲間だけが':'人は'}基地や地区のあちこちに散らばって降りる。</p>
     <canvas id="dropmap" width="${base.width}" height="${base.height}" style="width:100%;height:auto;max-height:58vh;object-fit:contain;border-radius:4px;cursor:crosshair;touch-action:none"></canvas>
     <p id="dropinfo" style="font-size:13px;color:var(--dim)">あと <b id="dropt">20</b> 秒で自動で降りる</p>
     <button class="btn" id="dropgo" disabled>ここに降りる</button><button class="btn ghost" id="droprand">おまかせで降りる</button>`;
@@ -2104,7 +2108,7 @@ function showDrop(){const base=document.createElement('canvas'),px=Math.min(440,
   $('dropgo').onclick=()=>dropDone(DROP.pick);$('droprand').onclick=()=>dropDone(null);drawDrop();
   DROP.timer=setInterval(()=>{if(!DROP)return;DROP.t-=1;const el=$('dropt');if(el)el.textContent=Math.max(0,Math.ceil(DROP.t));if(DROP.t<=0)dropDone(DROP.pick,true)},1000)}
 function launch(pick){if(!DROP)return;clearInterval(DROP.timer);DROP=null;
-  ALL=[];BOTS=[];const n=CFG.players,spots=[];
+  ALL=[];BOTS=[];const n=NET.on&&NET.noCpu?NET.lobby.length:CFG.players,spots=[];
   const myspot=pick||(()=>{for(let t=0;t<500;t++){const h=HOUSES[(Math.random()*HOUSES.length)|0];const c=validSpot((h.x+h.w/2)*T,(h.y+h.h+1.5)*T);if(c)return c}return ctr(floors[0])})();
   spots.push(myspot);
   const humans=NET.host?NET.lobby.slice(1):[];for(const h of humans){let c=h.pick?validSpot(h.pick.x,h.pick.z):null;for(let t=0;t<500&&!c;t++){const hh=HOUSES[(Math.random()*HOUSES.length)|0];c=validSpot((hh.x+hh.w/2)*T,(hh.y+hh.h+1.5)*T)}spots.push(c||ctr(floors[0]))}
@@ -2140,9 +2144,10 @@ function specNext(d){const al=specAlive();if(!al.length)return;const i=al.indexO
 function specFrame(dt){const al=specAlive();if(!SPEC.a||!SPEC.a.alive){const k=SPEC.a&&SPEC.a.lastHitBy;SPEC.a=k&&k.alive&&!k.me?k:al[0]||null;SPEC.cx=undefined}
   const el=$('specbar');
   if(!SPEC.a||ALL.filter(a=>a.alive).length<=1){if(!SPEC.done){SPEC.done=true;const w=ALL.find(a=>a.alive);if(el)el.innerHTML=`<b>${w?esc(w.name)+' の勝利':'試合終了'}</b>`;say(w?`${w.name}が最後の1人になった`:'試合終了',3);setTimeout(()=>{if(SPEC.on)specStop()},3500)}if(!SPEC.a)return}
-  const a=SPEC.a,ay=AY(a),f=a.face,hx=a.x,hy=ay+1.55,hz=a.z;let bx=-Math.sin(f),bz=-Math.cos(f),dist=3.4;
+  const a=SPEC.a,ay=AY(a);if(SPEC.cx===undefined||SPEC.f===undefined)SPEC.f=a.face;{let df=(a.face-SPEC.f)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;SPEC.f+=df*Math.min(1,dt*4)}
+  SPEC.hy=SPEC.hy===undefined||SPEC.cx===undefined?ay:SPEC.hy+(ay-SPEC.hy)*Math.min(1,dt*10);const f=SPEC.f,hx=a.x,hy=SPEC.hy+1.55,hz=a.z;let bx=-Math.sin(f),bz=-Math.cos(f),dist=3.4;
   const L=Math.hypot(bx*dist,.9,bz*dist),r=rayHit(hx,hy,hz,bx*dist/L,.9/L,bz*dist/L,L,a,false);const k=r.solid||r.actor?Math.max(.4,(r.t-.3)/L):1;
-  const tx=hx+bx*dist*k,ty=hy+.9*k,tz=hz+bz*dist*k;if(SPEC.cx===undefined){SPEC.cx=tx;SPEC.cy=ty;SPEC.cz=tz}const m=Math.min(1,dt*8);SPEC.cx+=(tx-SPEC.cx)*m;SPEC.cy+=(ty-SPEC.cy)*m;SPEC.cz+=(tz-SPEC.cz)*m;
+  const tx=hx+bx*dist*k,ty=hy+.9*k,tz=hz+bz*dist*k;if(SPEC.cx===undefined){SPEC.cx=tx;SPEC.cy=ty;SPEC.cz=tz}const m=Math.min(1,dt*10);SPEC.cx+=(tx-SPEC.cx)*m;SPEC.cy+=(ty-SPEC.cy)*m;SPEC.cz+=(tz-SPEC.cz)*m;
   cam.position.set(SPEC.cx,SPEC.cy,SPEC.cz);cam.lookAt(hx,hy-.1,hz);ME.x=a.x;ME.z=a.z;
   if(el&&!SPEC.done){const w=wpn(a);el.innerHTML=`観戦中：<b>${esc(a.name)}</b>　体力${Math.max(0,Math.round(a.hp))}${a.armorLv?'　ベストLv'+a.armorLv:''}${w?'　'+WEAP[w.id].name:''}　キル${a.kills||0}　残り${ALL.filter(x=>x.alive).length}人<span>クリック／Space：次の人　Esc：結果に戻る</span>`}}
 
@@ -2268,12 +2273,12 @@ function render(now,dt){
 const START_HTML=$('card').innerHTML;
 function bindSights(){$$('.sgts').forEach(g=>{const id=g.dataset.w;g.querySelectorAll('button').forEach(b=>{const on=b.dataset.s===SIGHT[id];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);
   b.onclick=()=>{SIGHT[id]=b.dataset.s;try{localStorage.setItem('dr_sight2',JSON.stringify(SIGHT))}catch(_){}bindSights()}})})}
-function bindStart(){$('start').onclick=startGame;bindNet();bindSens();bindSights();$$('.size').forEach(b=>{b.classList.toggle('on',b.dataset.size===SIZE);b.setAttribute('aria-pressed',b.dataset.size===SIZE);
-  b.onclick=()=>{SIZE=b.dataset.size;$$('.size').forEach(o=>{o.classList.toggle('on',o===b);o.setAttribute('aria-pressed',o===b)})}})}
+function bindStart(){$('start').onclick=startGame;bindSens();bindSights();$$('.size').forEach(b=>{b.classList.toggle('on',b.dataset.size===SIZE);b.setAttribute('aria-pressed',b.dataset.size===SIZE);
+  b.onclick=()=>{SIZE=b.dataset.size;$$('.size').forEach(o=>{o.classList.toggle('on',o===b);o.setAttribute('aria-pressed',o===b)})}});bindNet()}
 // ---------- online play: one player hosts the match, up to 3 friends join by room code ----------
 // The host runs the whole world (bots, loot, zone, doors) and sends snapshots; each player moves and aims their own soldier
 // and reports it, so the feel stays local. Damage to a player is applied on that player's machine.
-const NET={on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
+const NET={noCpu:false,on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
   applying:false,noKill:false,fx:null,hold:{},sT:0,pT:0,invT:0,wsT:0,lastWS:'',byI:[],code:''};
 const NETPFX='dusk-sf-';
 const r2=v=>Math.round(v*100)/100;
@@ -2290,8 +2295,8 @@ function applyInv(a,v){if(!v)return;a.slots=v.s.map(s=>s?{...s}:null);a.cur=v.c;
 function netInfo(html){const el=$('netinfo');if(el)el.innerHTML=html}
 function lobbyHtml(){const list=NET.lobby.map((p,i)=>`<li>${i===0?'👑 ':''}${esc(p.name)}${(NET.host&&i===0)||(NET.client&&p.me)?'（あなた）':''}</li>`).join('');
   if(NET.host){const url=location.href.split('?')[0].split('#')[0]+'?room='+NET.code;
-    return`<p>部屋コード <b class="netcode">${NET.code}</b>　<button class="btn ghost sm" id="netcopy">招待URLをコピー</button></p><p class="netdim">このURLを友達に送る：<br><span class="neturl">${esc(url)}</span></p><ol class="netlist">${list}</ol><p class="netdim">${NET.lobby.length}/4人。そろったら「全員で出撃する」。足りない人数はCPUが入る。</p>`}
-  return`<p><b>${esc(NET.lobby[0]?NET.lobby[0].name:'')}</b> の部屋に入った（コード ${NET.code}）。</p><ol class="netlist">${list}</ol><p class="netdim">ホストが出撃するのを待っている…</p>`}
+    return`<label class="netcpu"><input type="checkbox" id="netnocpu" ${NET.noCpu?'checked':''}> CPUを入れない（プレイヤーだけで戦う）</label><p>部屋コード <b class="netcode">${NET.code}</b>　<button class="btn ghost sm" id="netcopy">招待URLをコピー</button></p><p class="netdim">このURLを友達に送る：<br><span class="neturl">${esc(url)}</span></p><ol class="netlist">${list}</ol><p class="netdim">${NET.lobby.length}/4人。そろったら「全員で出撃する」。${NET.noCpu?'CPUは入らない。基地の広さは上で選んだもの。':'足りない人数はCPUが入る。'}</p>`}
+  const SZ={small:'小さめ',medium:'広い',large:'とても広い'};return`<p><b>${esc(NET.lobby[0]?NET.lobby[0].name:'')}</b> の部屋に入った（コード ${NET.code}）。基地：${SZ[SIZE]||''}${NET.noCpu?'・CPUなし':'・CPUあり'}</p><ol class="netlist">${list}</ol><p class="netdim">ホストが出撃するのを待っている…</p>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function myName(){const v=($('netname')&&$('netname').value.trim())||'';const n=(v||'プレイヤー'+((Math.random()*90|0)+10)).slice(0,10);try{localStorage.setItem('dr_name',n)}catch(_){}return n}
 function bindNet(){const nm=$('netname');if(!nm)return;try{nm.value=localStorage.getItem('dr_name')||''}catch(_){}
@@ -2302,6 +2307,8 @@ function bindNet(){const nm=$('netname');if(!nm)return;try{nm.value=localStorage
   else if(q)netInfo('<p class="netdim">招待された部屋に入るには、名前を入れて「入る」を押してください。</p>')}
 function netLobbyUi(){const st=$('start');if(NET.client){if(st)st.hidden=true;$$('.size').forEach(b=>b.disabled=true)}else if(NET.host&&st)st.textContent='全員で出撃する';
   $('netcreate').hidden=$('netjoinrow').hidden=true;$('netname').disabled=true;
+  const nc=$('netnocpu');if(nc)nc.onchange=()=>{NET.noCpu=nc.checked;netInfo(lobbyHtml());netLobbyUi();netLobbyCast()};
+  if(NET.host)$$('.size').forEach(b=>{const o=b.onclick;b.onclick=()=>{o&&o();netLobbyCast()}});
   const cp=$('netcopy');if(cp)cp.onclick=()=>{const url=location.href.split('?')[0].split('#')[0]+'?room='+NET.code;try{navigator.clipboard.writeText(url);cp.textContent='コピーした'}catch(_){}}}
 function netReset(msg){try{NET.peer&&NET.peer.destroy()}catch(_){}Object.assign(NET,{on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],live:false,done:false,inMatch:false});
   if(ME&&!S.over)S.over=true;$('stage').classList.remove('playing');$('overlay').hidden=false;if(document.pointerLockElement)document.exitPointerLock();$('card').innerHTML=START_HTML;bindStart();if(msg)netInfo(`<p class="netwarn">${msg}</p>`)}
@@ -2317,19 +2324,20 @@ function netJoin(code){if(!/^[A-Z0-9]{5}$/.test(code)){netInfo('<p class="netwar
     c.on('open',()=>{clearTimeout(to);Object.assign(NET,{on:true,client:true,host:false});c.send({t:'hello',name:NET.name})});
     c.on('data',clientRecv);c.on('close',()=>{if(NET.client)netReset('ホストとの接続が切れた。')})});
   peer.on('error',e=>{netInfo(`<p class="netwarn">${e.type==='peer-unavailable'?'部屋が見つからない。コードを確かめてください。':'つなげなかった（'+esc(e.type||e)+'）'}</p>`)})}
+function netLobbyCast(){if(NET.host)bcast({t:'lobby',l:NET.lobby.map(p=>p.name),code:NET.code,size:SIZE,nc:NET.noCpu})}
 function hostDrop(c){const i=NET.conns.indexOf(c);if(i<0)return;NET.conns.splice(i,1);NET.lobby=NET.lobby.filter(p=>p.conn!==c);
   const a=c.actor;if(a&&a.alive&&ME){a.remote=false;a.conn=null;a.mode='loot';a.path=[];a.target=null;a.enemy=null;killFeed(`${esc(a.name)}<span>回線が切れた（CPUが代わりに動く）</span>`);bcast({t:'feed',h:`${esc(a.name)}<span>回線が切れた（CPUが代わりに動く）</span>`})}
-  if(!ME||!$('overlay').hidden&&!DROP){netInfo(lobbyHtml());netLobbyUi()}bcast({t:'lobby',l:NET.lobby.map(p=>p.name)})}
+  if(!ME||!$('overlay').hidden&&!DROP){netInfo(lobbyHtml());netLobbyUi()}netLobbyCast()}
 
 // ---------- host side ----------
 function hostRecv(c,m){
   if(m.t==='hello'){if(NET.lobby.length>=4){sendTo(c,{t:'deny',why:'満員（4人まで）'});return}if(DROP||NET.inMatch){sendTo(c,{t:'deny',why:'試合中。終わってから入ってください'});return}
-    NET.conns.push(c);NET.lobby.push({name:String(m.name||'').slice(0,10)||'ゲスト',conn:c});bcast({t:'lobby',l:NET.lobby.map(p=>p.name),code:NET.code,size:SIZE});
+    NET.conns.push(c);NET.lobby.push({name:String(m.name||'').slice(0,10)||'ゲスト',conn:c});netLobbyCast();
     if(!$('overlay').hidden&&!DROP){netInfo(lobbyHtml());netLobbyUi()}return}
   const a=c.actor;
   if(m.t==='pick'){const p=NET.lobby.find(p=>p.conn===c);if(p){p.pick=m.p;p.ready=true}dropCheck();return}
   if(!a||!ALL.includes(a))return;
-  if(m.t==='p'){if(!a.alive||!a.remote)return;a.x=m.x;a.z=m.z;a.y=m.y;a.feet=m.y;a.face=m.yaw+Math.PI;a.yaw=m.yaw;a.pitch=m.pi;flagsTo(a,m.f);a.walk=m.wk;a.hp=m.hp;a.armorLv=m.al;a.helmLv=m.hl;
+  if(m.t==='p'){if(!a.alive||!a.remote)return;a.tx=m.x;a.tz=m.z;a.ty=m.y;a.tf=m.yaw+Math.PI;if(a.y===undefined||Math.hypot(m.x-a.x,m.z-a.z)>6){a.x=m.x;a.z=m.z;a.y=m.y;a.face=a.tf}a.feet=a.y;a.yaw=m.yaw;a.pitch=m.pi;flagsTo(a,m.f);a.walk=m.wk;a.hp=m.hp;a.armorLv=m.al;a.helmLv=m.hl;
     if(m.w){if(!a.slots[a.cur]||a.slots[a.cur].id!==m.w)a.slots[a.cur]={id:m.w,r:m.wr||0,optic:m.wo||null,mag:1}}else a.slots[a.cur]=null;if(m.inv)applyInv(a,m.inv);return}
   if(m.t==='shot'){const W_=WEAP[m.w];if(!W_)return;gunSound(a,W_);for(let k=0;k+5<m.tr.length;k+=6)tracer({x:m.tr[k],y:m.tr[k+1],z:m.tr[k+2]},{x:m.tr[k+3],y:m.tr[k+4],z:m.tr[k+5]});
     a.mesh.fl.visible=true;a.flashT=.05;shotPing(a);bcast({t:'fx',a:a.i,w:m.w,tr:m.tr},c);return}
@@ -2339,7 +2347,7 @@ function hostRecv(c,m){
   if(m.t==='spawn'){spawnItem(des(m.it),m.x,m.z,m.y);return}
   if(m.t==='use'){if(m.k==='d'){const dd=doors.get(m.key);if(dd)dd.open=!!m.v}else if(m.k==='w'){const w=wins.get(m.key);if(w&&w.state!==m.v)setWin(w,m.v)}else if(m.k==='r'){const dr=drawers.get(m.key);if(dr)openDrawer(dr)}}}
 function worldState(){let d='',w='',r='';for(const x of doors.values())d+=(x.open?1:0)+(x.broken?2:0);for(const x of wins.values())w+=x.state[0];for(const x of drawers.values())r+=x.opened?1:0;return{d,w,r}}
-function netSendInit(seed){NET.done=false;NET.live=true;for(const p of NET.lobby){p.pick=null;p.ready=false}const ws=worldState();NET.lastWS=JSON.stringify(ws);
+function netSendInit(seed){if(NET.noCpu&&NET.lobby.length<2)NET.noCpu=false;NET.done=false;NET.live=true;for(const p of NET.lobby){p.pick=null;p.ready=false}const ws=worldState();NET.lastWS=JSON.stringify(ws);
   bcast({t:'init',seed,size:SIZE,ws,items:ITEMS.map(ser),z:Z,lobby:NET.lobby.map(p=>p.name)})}
 function dropCheck(){if(!NET.host||!DROP)return;if(DROP.hostReady&&NET.lobby.slice(1).every(p=>p.ready))launch(DROP.pick)}
 function dropDone(pick,timeout){if(!DROP)return;if(!NET.on){launch(pick);return}
@@ -2357,7 +2365,7 @@ function hostWorld(dt){S.t+=dt;updateZone(dt);for(const b of BOTS)botUpdate(b,dt
 // ---------- client side ----------
 function clientRecv(m){
   if(m.t==='deny'){netReset(`入れなかった：${esc(m.why)}`);return}
-  if(m.t==='lobby'){NET.lobby=m.l.map((n,i)=>({name:n,me:false}));const mine=NET.lobby.slice(1).reverse().find(p=>p.name===NET.name);if(mine)mine.me=true;if(m.size)SIZE=m.size;
+  if(m.t==='lobby'){NET.lobby=m.l.map((n,i)=>({name:n,me:false}));const mine=NET.lobby.slice(1).reverse().find(p=>p.name===NET.name);if(mine)mine.me=true;if(m.size)SIZE=m.size;NET.noCpu=!!m.nc;
     if(!$('overlay').hidden&&!DROP&&(!ME||S.over)){if(!$('netinfo'))return;netInfo(lobbyHtml());netLobbyUi()}return}
   if(m.t==='init'){clientInit(m);return}
   if(m.t==='go'){clientGo(m);return}
@@ -2393,9 +2401,9 @@ function clientSnap(m){if(ME.alive||Math.abs(S.t-m.st)>1)S.t=m.st;const st0=Z&&Z
 
 // ---------- every frame ----------
 function netFrame(dt){const now=performance.now();
-  if(NET.client){// smooth the others toward the last snapshot
-    const k=Math.min(1,dt*14);for(const a of BOTS){if(a.tx===undefined)continue;if(Math.hypot(a.tx-a.x,a.tz-a.z)>6){a.x=a.tx;a.z=a.tz}else{a.x+=(a.tx-a.x)*k;a.z+=(a.tz-a.z)*k}
-      if(!isFinite(a.ty))a.ty=groundY(a.tx,a.tz);if(!isFinite(a.tf))a.tf=a.face||0;if(!isFinite(a.face))a.face=a.tf;a.y=!isFinite(a.y)?a.ty:a.y+(a.ty-a.y)*k;let df=(a.tf-a.face)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;a.face+=df*k}
+  {const k=Math.min(1,dt*14);for(const a of BOTS){if(a.tx===undefined||(NET.host&&!a.remote))continue;if(Math.hypot(a.tx-a.x,a.tz-a.z)>6){a.x=a.tx;a.z=a.tz}else{a.x+=(a.tx-a.x)*k;a.z+=(a.tz-a.z)*k}
+      if(!isFinite(a.ty))a.ty=groundY(a.tx,a.tz);if(!isFinite(a.tf))a.tf=a.face||0;if(!isFinite(a.face))a.face=a.tf;a.y=!isFinite(a.y)?a.ty:a.y+(a.ty-a.y)*k;let df=(a.tf-a.face)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;a.face+=df*k;if(NET.host)a.feet=a.y}}
+  if(NET.client){
     if(now-NET.pT>50&&ME.alive){NET.pT=now;const w=wpn(ME),m={t:'p',x:r2(ME.x),z:r2(ME.z),y:r2(ME.y??groundY(ME.x,ME.z)),yaw:r2(ME.yaw),pi:r2(ME.pitch),f:flagsOf(ME),wk:r2(ME.walk),w:w?w.id:'',wr:w?w.r||0:0,wo:w?w.optic||'':'',hp:Math.round(ME.hp),al:ME.armorLv,hl:ME.helmLv};
       if(now-NET.invT>1000){NET.invT=now;m.inv=inv(ME)}netSend(m)}}
   if(NET.host&&ALL.length){if(now-NET.sT>50){NET.sT=now;bcast(snapshot())}

@@ -1,7 +1,7 @@
 // ---------- online play: one player hosts the match, up to 3 friends join by room code ----------
 // The host runs the whole world (bots, loot, zone, doors) and sends snapshots; each player moves and aims their own soldier
 // and reports it, so the feel stays local. Damage to a player is applied on that player's machine.
-const NET={on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
+const NET={noCpu:false,on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
   applying:false,noKill:false,fx:null,hold:{},sT:0,pT:0,invT:0,wsT:0,lastWS:'',byI:[],code:''};
 const NETPFX='dusk-sf-';
 const r2=v=>Math.round(v*100)/100;
@@ -18,8 +18,8 @@ function applyInv(a,v){if(!v)return;a.slots=v.s.map(s=>s?{...s}:null);a.cur=v.c;
 function netInfo(html){const el=$('netinfo');if(el)el.innerHTML=html}
 function lobbyHtml(){const list=NET.lobby.map((p,i)=>`<li>${i===0?'👑 ':''}${esc(p.name)}${(NET.host&&i===0)||(NET.client&&p.me)?'（あなた）':''}</li>`).join('');
   if(NET.host){const url=location.href.split('?')[0].split('#')[0]+'?room='+NET.code;
-    return`<p>部屋コード <b class="netcode">${NET.code}</b>　<button class="btn ghost sm" id="netcopy">招待URLをコピー</button></p><p class="netdim">このURLを友達に送る：<br><span class="neturl">${esc(url)}</span></p><ol class="netlist">${list}</ol><p class="netdim">${NET.lobby.length}/4人。そろったら「全員で出撃する」。足りない人数はCPUが入る。</p>`}
-  return`<p><b>${esc(NET.lobby[0]?NET.lobby[0].name:'')}</b> の部屋に入った（コード ${NET.code}）。</p><ol class="netlist">${list}</ol><p class="netdim">ホストが出撃するのを待っている…</p>`}
+    return`<label class="netcpu"><input type="checkbox" id="netnocpu" ${NET.noCpu?'checked':''}> CPUを入れない（プレイヤーだけで戦う）</label><p>部屋コード <b class="netcode">${NET.code}</b>　<button class="btn ghost sm" id="netcopy">招待URLをコピー</button></p><p class="netdim">このURLを友達に送る：<br><span class="neturl">${esc(url)}</span></p><ol class="netlist">${list}</ol><p class="netdim">${NET.lobby.length}/4人。そろったら「全員で出撃する」。${NET.noCpu?'CPUは入らない。基地の広さは上で選んだもの。':'足りない人数はCPUが入る。'}</p>`}
+  const SZ={small:'小さめ',medium:'広い',large:'とても広い'};return`<p><b>${esc(NET.lobby[0]?NET.lobby[0].name:'')}</b> の部屋に入った（コード ${NET.code}）。基地：${SZ[SIZE]||''}${NET.noCpu?'・CPUなし':'・CPUあり'}</p><ol class="netlist">${list}</ol><p class="netdim">ホストが出撃するのを待っている…</p>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function myName(){const v=($('netname')&&$('netname').value.trim())||'';const n=(v||'プレイヤー'+((Math.random()*90|0)+10)).slice(0,10);try{localStorage.setItem('dr_name',n)}catch(_){}return n}
 function bindNet(){const nm=$('netname');if(!nm)return;try{nm.value=localStorage.getItem('dr_name')||''}catch(_){}
@@ -30,6 +30,8 @@ function bindNet(){const nm=$('netname');if(!nm)return;try{nm.value=localStorage
   else if(q)netInfo('<p class="netdim">招待された部屋に入るには、名前を入れて「入る」を押してください。</p>')}
 function netLobbyUi(){const st=$('start');if(NET.client){if(st)st.hidden=true;$$('.size').forEach(b=>b.disabled=true)}else if(NET.host&&st)st.textContent='全員で出撃する';
   $('netcreate').hidden=$('netjoinrow').hidden=true;$('netname').disabled=true;
+  const nc=$('netnocpu');if(nc)nc.onchange=()=>{NET.noCpu=nc.checked;netInfo(lobbyHtml());netLobbyUi();netLobbyCast()};
+  if(NET.host)$$('.size').forEach(b=>{const o=b.onclick;b.onclick=()=>{o&&o();netLobbyCast()}});
   const cp=$('netcopy');if(cp)cp.onclick=()=>{const url=location.href.split('?')[0].split('#')[0]+'?room='+NET.code;try{navigator.clipboard.writeText(url);cp.textContent='コピーした'}catch(_){}}}
 function netReset(msg){try{NET.peer&&NET.peer.destroy()}catch(_){}Object.assign(NET,{on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],live:false,done:false,inMatch:false});
   if(ME&&!S.over)S.over=true;$('stage').classList.remove('playing');$('overlay').hidden=false;if(document.pointerLockElement)document.exitPointerLock();$('card').innerHTML=START_HTML;bindStart();if(msg)netInfo(`<p class="netwarn">${msg}</p>`)}
@@ -45,19 +47,20 @@ function netJoin(code){if(!/^[A-Z0-9]{5}$/.test(code)){netInfo('<p class="netwar
     c.on('open',()=>{clearTimeout(to);Object.assign(NET,{on:true,client:true,host:false});c.send({t:'hello',name:NET.name})});
     c.on('data',clientRecv);c.on('close',()=>{if(NET.client)netReset('ホストとの接続が切れた。')})});
   peer.on('error',e=>{netInfo(`<p class="netwarn">${e.type==='peer-unavailable'?'部屋が見つからない。コードを確かめてください。':'つなげなかった（'+esc(e.type||e)+'）'}</p>`)})}
+function netLobbyCast(){if(NET.host)bcast({t:'lobby',l:NET.lobby.map(p=>p.name),code:NET.code,size:SIZE,nc:NET.noCpu})}
 function hostDrop(c){const i=NET.conns.indexOf(c);if(i<0)return;NET.conns.splice(i,1);NET.lobby=NET.lobby.filter(p=>p.conn!==c);
   const a=c.actor;if(a&&a.alive&&ME){a.remote=false;a.conn=null;a.mode='loot';a.path=[];a.target=null;a.enemy=null;killFeed(`${esc(a.name)}<span>回線が切れた（CPUが代わりに動く）</span>`);bcast({t:'feed',h:`${esc(a.name)}<span>回線が切れた（CPUが代わりに動く）</span>`})}
-  if(!ME||!$('overlay').hidden&&!DROP){netInfo(lobbyHtml());netLobbyUi()}bcast({t:'lobby',l:NET.lobby.map(p=>p.name)})}
+  if(!ME||!$('overlay').hidden&&!DROP){netInfo(lobbyHtml());netLobbyUi()}netLobbyCast()}
 
 // ---------- host side ----------
 function hostRecv(c,m){
   if(m.t==='hello'){if(NET.lobby.length>=4){sendTo(c,{t:'deny',why:'満員（4人まで）'});return}if(DROP||NET.inMatch){sendTo(c,{t:'deny',why:'試合中。終わってから入ってください'});return}
-    NET.conns.push(c);NET.lobby.push({name:String(m.name||'').slice(0,10)||'ゲスト',conn:c});bcast({t:'lobby',l:NET.lobby.map(p=>p.name),code:NET.code,size:SIZE});
+    NET.conns.push(c);NET.lobby.push({name:String(m.name||'').slice(0,10)||'ゲスト',conn:c});netLobbyCast();
     if(!$('overlay').hidden&&!DROP){netInfo(lobbyHtml());netLobbyUi()}return}
   const a=c.actor;
   if(m.t==='pick'){const p=NET.lobby.find(p=>p.conn===c);if(p){p.pick=m.p;p.ready=true}dropCheck();return}
   if(!a||!ALL.includes(a))return;
-  if(m.t==='p'){if(!a.alive||!a.remote)return;a.x=m.x;a.z=m.z;a.y=m.y;a.feet=m.y;a.face=m.yaw+Math.PI;a.yaw=m.yaw;a.pitch=m.pi;flagsTo(a,m.f);a.walk=m.wk;a.hp=m.hp;a.armorLv=m.al;a.helmLv=m.hl;
+  if(m.t==='p'){if(!a.alive||!a.remote)return;a.tx=m.x;a.tz=m.z;a.ty=m.y;a.tf=m.yaw+Math.PI;if(a.y===undefined||Math.hypot(m.x-a.x,m.z-a.z)>6){a.x=m.x;a.z=m.z;a.y=m.y;a.face=a.tf}a.feet=a.y;a.yaw=m.yaw;a.pitch=m.pi;flagsTo(a,m.f);a.walk=m.wk;a.hp=m.hp;a.armorLv=m.al;a.helmLv=m.hl;
     if(m.w){if(!a.slots[a.cur]||a.slots[a.cur].id!==m.w)a.slots[a.cur]={id:m.w,r:m.wr||0,optic:m.wo||null,mag:1}}else a.slots[a.cur]=null;if(m.inv)applyInv(a,m.inv);return}
   if(m.t==='shot'){const W_=WEAP[m.w];if(!W_)return;gunSound(a,W_);for(let k=0;k+5<m.tr.length;k+=6)tracer({x:m.tr[k],y:m.tr[k+1],z:m.tr[k+2]},{x:m.tr[k+3],y:m.tr[k+4],z:m.tr[k+5]});
     a.mesh.fl.visible=true;a.flashT=.05;shotPing(a);bcast({t:'fx',a:a.i,w:m.w,tr:m.tr},c);return}
@@ -67,7 +70,7 @@ function hostRecv(c,m){
   if(m.t==='spawn'){spawnItem(des(m.it),m.x,m.z,m.y);return}
   if(m.t==='use'){if(m.k==='d'){const dd=doors.get(m.key);if(dd)dd.open=!!m.v}else if(m.k==='w'){const w=wins.get(m.key);if(w&&w.state!==m.v)setWin(w,m.v)}else if(m.k==='r'){const dr=drawers.get(m.key);if(dr)openDrawer(dr)}}}
 function worldState(){let d='',w='',r='';for(const x of doors.values())d+=(x.open?1:0)+(x.broken?2:0);for(const x of wins.values())w+=x.state[0];for(const x of drawers.values())r+=x.opened?1:0;return{d,w,r}}
-function netSendInit(seed){NET.done=false;NET.live=true;for(const p of NET.lobby){p.pick=null;p.ready=false}const ws=worldState();NET.lastWS=JSON.stringify(ws);
+function netSendInit(seed){if(NET.noCpu&&NET.lobby.length<2)NET.noCpu=false;NET.done=false;NET.live=true;for(const p of NET.lobby){p.pick=null;p.ready=false}const ws=worldState();NET.lastWS=JSON.stringify(ws);
   bcast({t:'init',seed,size:SIZE,ws,items:ITEMS.map(ser),z:Z,lobby:NET.lobby.map(p=>p.name)})}
 function dropCheck(){if(!NET.host||!DROP)return;if(DROP.hostReady&&NET.lobby.slice(1).every(p=>p.ready))launch(DROP.pick)}
 function dropDone(pick,timeout){if(!DROP)return;if(!NET.on){launch(pick);return}
@@ -85,7 +88,7 @@ function hostWorld(dt){S.t+=dt;updateZone(dt);for(const b of BOTS)botUpdate(b,dt
 // ---------- client side ----------
 function clientRecv(m){
   if(m.t==='deny'){netReset(`入れなかった：${esc(m.why)}`);return}
-  if(m.t==='lobby'){NET.lobby=m.l.map((n,i)=>({name:n,me:false}));const mine=NET.lobby.slice(1).reverse().find(p=>p.name===NET.name);if(mine)mine.me=true;if(m.size)SIZE=m.size;
+  if(m.t==='lobby'){NET.lobby=m.l.map((n,i)=>({name:n,me:false}));const mine=NET.lobby.slice(1).reverse().find(p=>p.name===NET.name);if(mine)mine.me=true;if(m.size)SIZE=m.size;NET.noCpu=!!m.nc;
     if(!$('overlay').hidden&&!DROP&&(!ME||S.over)){if(!$('netinfo'))return;netInfo(lobbyHtml());netLobbyUi()}return}
   if(m.t==='init'){clientInit(m);return}
   if(m.t==='go'){clientGo(m);return}
@@ -121,9 +124,9 @@ function clientSnap(m){if(ME.alive||Math.abs(S.t-m.st)>1)S.t=m.st;const st0=Z&&Z
 
 // ---------- every frame ----------
 function netFrame(dt){const now=performance.now();
-  if(NET.client){// smooth the others toward the last snapshot
-    const k=Math.min(1,dt*14);for(const a of BOTS){if(a.tx===undefined)continue;if(Math.hypot(a.tx-a.x,a.tz-a.z)>6){a.x=a.tx;a.z=a.tz}else{a.x+=(a.tx-a.x)*k;a.z+=(a.tz-a.z)*k}
-      if(!isFinite(a.ty))a.ty=groundY(a.tx,a.tz);if(!isFinite(a.tf))a.tf=a.face||0;if(!isFinite(a.face))a.face=a.tf;a.y=!isFinite(a.y)?a.ty:a.y+(a.ty-a.y)*k;let df=(a.tf-a.face)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;a.face+=df*k}
+  {const k=Math.min(1,dt*14);for(const a of BOTS){if(a.tx===undefined||(NET.host&&!a.remote))continue;if(Math.hypot(a.tx-a.x,a.tz-a.z)>6){a.x=a.tx;a.z=a.tz}else{a.x+=(a.tx-a.x)*k;a.z+=(a.tz-a.z)*k}
+      if(!isFinite(a.ty))a.ty=groundY(a.tx,a.tz);if(!isFinite(a.tf))a.tf=a.face||0;if(!isFinite(a.face))a.face=a.tf;a.y=!isFinite(a.y)?a.ty:a.y+(a.ty-a.y)*k;let df=(a.tf-a.face)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;a.face+=df*k;if(NET.host)a.feet=a.y}}
+  if(NET.client){
     if(now-NET.pT>50&&ME.alive){NET.pT=now;const w=wpn(ME),m={t:'p',x:r2(ME.x),z:r2(ME.z),y:r2(ME.y??groundY(ME.x,ME.z)),yaw:r2(ME.yaw),pi:r2(ME.pitch),f:flagsOf(ME),wk:r2(ME.walk),w:w?w.id:'',wr:w?w.r||0:0,wo:w?w.optic||'':'',hp:Math.round(ME.hp),al:ME.armorLv,hl:ME.helmLv};
       if(now-NET.invT>1000){NET.invT=now;m.inv=inv(ME)}netSend(m)}}
   if(NET.host&&ALL.length){if(now-NET.sT>50){NET.sT=now;bcast(snapshot())}

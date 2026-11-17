@@ -557,6 +557,9 @@ function itemLabel(it){return it.kind==='optic'?OPTICS[it.id].n:it.kind==='weapo
 function seedLoot(){ITEMS=[];
   for(const h of HOUSES){const n=h.shed?1:2+((Math.random()*2)|0);const opts=[];for(let y=h.y+1;y<h.y+h.h-1;y++)for(let x=h.x+1;x<h.x+h.w-1;x++)if(grid[y][x]==='f')opts.push({x,y});
     for(let k=0;k<n&&opts.length;k++){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);rollLoot(k===0&&!h.shed).forEach((it,j)=>spawnItem(it,c.x+(Math.random()-.5)*.8+j*.5,c.z+(Math.random()-.5)*.8))}
+    // every building also has a spare box of ammo (a type that matches a gun already there when there is one)
+    if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),gun=ITEMS.find(i=>i.kind==='weapon'&&TX(i.x)>=h.x&&TX(i.x)<h.x+h.w&&TX(i.z)>=h.y&&TX(i.z)<h.y+h.h);
+      const t=gun&&Math.random()<.6?WEAP[gun.id].ammo:['light','light','medium','medium','shell','heavy'][(Math.random()*6)|0];spawnItem({kind:'ammo',id:t,amt:t==='shell'?10:t==='heavy'?10:t==='medium'?30:36},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
     if(!h.shed&&opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),lv=rollLv();spawnItem(Math.random()<.5?{kind:'armor',lv,hp:VEST[lv].cap}:{kind:'helmet',lv,hp:HELM[lv].cap},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
     if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);spawnItem(Math.random()<.75?{kind:'bandage',amt:Math.random()<.6?1:2}:{kind:'medkit',amt:1},c.x+(Math.random()-.5)*.8,c.z+(Math.random()-.5)*.8)}}
   for(const c of CARS){const cx=c.dir==='x'?(c.tx+1)*T:c.tx*T+T/2,cz=c.dir==='x'?c.ty*T+T/2:(c.ty+1)*T;const ox=c.dir==='x'?0:1.6,oz=c.dir==='x'?1.6:0;
@@ -569,7 +572,7 @@ function newActor(i,isMe,x,z){const a={i,me:isMe,name:isMe?'あなた':'CPU'+i,x
   if(!isMe){a.skill=.3+Math.random()*.55;a.aggr=Math.random();a.react=.35+Math.random()*.4;a.path=[];a.target=null;a.mode='loot';a.lookT=Math.random()*.3;a.enemy=null;a.seen=0;a.idle=Math.random();
     a.strafe=Math.random()<.5?1:-1;a.strafeT=0;a.mesh=buildRig(i+1);world.add(a.mesh.g)}
   return a}
-const wpn=a=>a.slots[a.cur];
+const wpn=a=>a?a.slots[a.cur]:null;
 function giveWeapon(a,id,r,optic){const free=a.slots.findIndex(s=>!s);const w={id,r:r||0,optic:a.me?myOptic(id):(optic||null)};w.mag=wMag(w);let dropped=null;
   if(free>=0){a.slots[free]=w;if(!wpn(a))a.cur=free;if(a.me&&free!==a.cur){}if(a.me&&!a.slots[a.cur])a.cur=free}
   else{dropped=a.slots[a.cur];a.slots[a.cur]=w}
@@ -953,7 +956,7 @@ function setSens(v){SENS=v;try{localStorage.setItem('dr_sens',String(v))}catch(_
 function bindSens(){$$('.sens').forEach(el=>{el.value=SENS;el.oninput=()=>setSens(parseFloat(el.value))});setSens(SENS)}
 const ADSSENS=Math.tan(29*Math.PI/180)/Math.tan(37*Math.PI/180),adsSensW=w=>Math.tan(adsFovW(w)/2*Math.PI/180)/Math.tan(37*Math.PI/180);
 
-function look(dx,dy,k){k*=SENS;const w_=wpn(ME),ak=S.adsK||0,s=1+((w_?adsSensW(w_):ADSSENS)-1)*ak;ME.yaw-=dx*k*s;VM.swX=Math.max(-.06,Math.min(.06,VM.swX+dx*k*s*.35));VM.swY=Math.max(-.05,Math.min(.05,VM.swY+dy*k*s*.35));ME.pitch=Math.max(-1.3,Math.min(1.3,ME.pitch-dy*k*s))}
+function look(dx,dy,k){if(!ME||SPEC.on)return;k*=SENS;const w_=wpn(ME),ak=S.adsK||0,s=1+((w_?adsSensW(w_):ADSSENS)-1)*ak;ME.yaw-=dx*k*s;VM.swX=Math.max(-.06,Math.min(.06,VM.swX+dx*k*s*.35));VM.swY=Math.max(-.05,Math.min(.05,VM.swY+dy*k*s*.35));ME.pitch=Math.max(-1.3,Math.min(1.3,ME.pitch-dy*k*s))}
 const cvEl=$('cv');
 function lockPointer(){try{const p=cvEl.requestPointerLock();if(p&&p.catch)p.catch(()=>{})}catch(_){}}
 document.addEventListener('mousedown',e=>{if(document.pointerLockElement!==cvEl)return;if(e.button===0){btn.fire=true;S.fireBuf=.18}if(e.button===2)btn.adsM=true});
@@ -1054,7 +1057,7 @@ function showDrop(){const base=document.createElement('canvas'),px=Math.min(440,
     (()=>{const hh=Math.max(0,Math.min(1,(heightAt(x*T+T/2,y*T+T/2)+2)/7));return`rgb(${78+hh*50|0},${48+hh*34|0},${40+hh*26|0})`})();b.fillRect(x*s,y*s,s+.5,s+.5)}
   DROP={base,pick:null,t:20};
   $('card').innerHTML=`<h1><small>CHOOSE YOUR DROP</small>降下地点を選ぶ</h1>
-    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区、枠は構造物（オレンジは大型）、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、${NET.on?'仲間以外の':'ほかの'}${CFG.players-1-(NET.on?NET.lobby.length-1:0)}人は基地や地区のあちこちに散らばって降りる。</p>
+    <p>地図をタップして降りる場所を決める。数字はその建物の武器とロッカーの数。点線の区画は地区、枠は構造物（オレンジは大型）、▲は高所に置かれた良いアイテムの数。安全地帯の位置は降りてからミニマップで分かる。全員がハンドガンを持って降り、${NET.on?'仲間以外の':'ほかの'}${NET.on&&NET.noCpu?'':CFG.players-1-(NET.on?NET.lobby.length-1:0)}${NET.on&&NET.noCpu?'仲間だけが':'人は'}基地や地区のあちこちに散らばって降りる。</p>
     <canvas id="dropmap" width="${base.width}" height="${base.height}" style="width:100%;height:auto;max-height:58vh;object-fit:contain;border-radius:4px;cursor:crosshair;touch-action:none"></canvas>
     <p id="dropinfo" style="font-size:13px;color:var(--dim)">あと <b id="dropt">20</b> 秒で自動で降りる</p>
     <button class="btn" id="dropgo" disabled>ここに降りる</button><button class="btn ghost" id="droprand">おまかせで降りる</button>`;
@@ -1064,7 +1067,7 @@ function showDrop(){const base=document.createElement('canvas'),px=Math.min(440,
   $('dropgo').onclick=()=>dropDone(DROP.pick);$('droprand').onclick=()=>dropDone(null);drawDrop();
   DROP.timer=setInterval(()=>{if(!DROP)return;DROP.t-=1;const el=$('dropt');if(el)el.textContent=Math.max(0,Math.ceil(DROP.t));if(DROP.t<=0)dropDone(DROP.pick,true)},1000)}
 function launch(pick){if(!DROP)return;clearInterval(DROP.timer);DROP=null;
-  ALL=[];BOTS=[];const n=CFG.players,spots=[];
+  ALL=[];BOTS=[];const n=NET.on&&NET.noCpu?NET.lobby.length:CFG.players,spots=[];
   const myspot=pick||(()=>{for(let t=0;t<500;t++){const h=HOUSES[(Math.random()*HOUSES.length)|0];const c=validSpot((h.x+h.w/2)*T,(h.y+h.h+1.5)*T);if(c)return c}return ctr(floors[0])})();
   spots.push(myspot);
   const humans=NET.host?NET.lobby.slice(1):[];for(const h of humans){let c=h.pick?validSpot(h.pick.x,h.pick.z):null;for(let t=0;t<500&&!c;t++){const hh=HOUSES[(Math.random()*HOUSES.length)|0];c=validSpot((hh.x+hh.w/2)*T,(hh.y+hh.h+1.5)*T)}spots.push(c||ctr(floors[0]))}
@@ -1100,9 +1103,10 @@ function specNext(d){const al=specAlive();if(!al.length)return;const i=al.indexO
 function specFrame(dt){const al=specAlive();if(!SPEC.a||!SPEC.a.alive){const k=SPEC.a&&SPEC.a.lastHitBy;SPEC.a=k&&k.alive&&!k.me?k:al[0]||null;SPEC.cx=undefined}
   const el=$('specbar');
   if(!SPEC.a||ALL.filter(a=>a.alive).length<=1){if(!SPEC.done){SPEC.done=true;const w=ALL.find(a=>a.alive);if(el)el.innerHTML=`<b>${w?esc(w.name)+' の勝利':'試合終了'}</b>`;say(w?`${w.name}が最後の1人になった`:'試合終了',3);setTimeout(()=>{if(SPEC.on)specStop()},3500)}if(!SPEC.a)return}
-  const a=SPEC.a,ay=AY(a),f=a.face,hx=a.x,hy=ay+1.55,hz=a.z;let bx=-Math.sin(f),bz=-Math.cos(f),dist=3.4;
+  const a=SPEC.a,ay=AY(a);if(SPEC.cx===undefined||SPEC.f===undefined)SPEC.f=a.face;{let df=(a.face-SPEC.f)%(Math.PI*2);if(df>Math.PI)df-=Math.PI*2;if(df<-Math.PI)df+=Math.PI*2;SPEC.f+=df*Math.min(1,dt*4)}
+  SPEC.hy=SPEC.hy===undefined||SPEC.cx===undefined?ay:SPEC.hy+(ay-SPEC.hy)*Math.min(1,dt*10);const f=SPEC.f,hx=a.x,hy=SPEC.hy+1.55,hz=a.z;let bx=-Math.sin(f),bz=-Math.cos(f),dist=3.4;
   const L=Math.hypot(bx*dist,.9,bz*dist),r=rayHit(hx,hy,hz,bx*dist/L,.9/L,bz*dist/L,L,a,false);const k=r.solid||r.actor?Math.max(.4,(r.t-.3)/L):1;
-  const tx=hx+bx*dist*k,ty=hy+.9*k,tz=hz+bz*dist*k;if(SPEC.cx===undefined){SPEC.cx=tx;SPEC.cy=ty;SPEC.cz=tz}const m=Math.min(1,dt*8);SPEC.cx+=(tx-SPEC.cx)*m;SPEC.cy+=(ty-SPEC.cy)*m;SPEC.cz+=(tz-SPEC.cz)*m;
+  const tx=hx+bx*dist*k,ty=hy+.9*k,tz=hz+bz*dist*k;if(SPEC.cx===undefined){SPEC.cx=tx;SPEC.cy=ty;SPEC.cz=tz}const m=Math.min(1,dt*10);SPEC.cx+=(tx-SPEC.cx)*m;SPEC.cy+=(ty-SPEC.cy)*m;SPEC.cz+=(tz-SPEC.cz)*m;
   cam.position.set(SPEC.cx,SPEC.cy,SPEC.cz);cam.lookAt(hx,hy-.1,hz);ME.x=a.x;ME.z=a.z;
   if(el&&!SPEC.done){const w=wpn(a);el.innerHTML=`観戦中：<b>${esc(a.name)}</b>　体力${Math.max(0,Math.round(a.hp))}${a.armorLv?'　ベストLv'+a.armorLv:''}${w?'　'+WEAP[w.id].name:''}　キル${a.kills||0}　残り${ALL.filter(x=>x.alive).length}人<span>クリック／Space：次の人　Esc：結果に戻る</span>`}}
 
@@ -1228,8 +1232,8 @@ function render(now,dt){
 const START_HTML=$('card').innerHTML;
 function bindSights(){$$('.sgts').forEach(g=>{const id=g.dataset.w;g.querySelectorAll('button').forEach(b=>{const on=b.dataset.s===SIGHT[id];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);
   b.onclick=()=>{SIGHT[id]=b.dataset.s;try{localStorage.setItem('dr_sight2',JSON.stringify(SIGHT))}catch(_){}bindSights()}})})}
-function bindStart(){$('start').onclick=startGame;bindNet();bindSens();bindSights();$$('.size').forEach(b=>{b.classList.toggle('on',b.dataset.size===SIZE);b.setAttribute('aria-pressed',b.dataset.size===SIZE);
-  b.onclick=()=>{SIZE=b.dataset.size;$$('.size').forEach(o=>{o.classList.toggle('on',o===b);o.setAttribute('aria-pressed',o===b)})}})}
+function bindStart(){$('start').onclick=startGame;bindSens();bindSights();$$('.size').forEach(b=>{b.classList.toggle('on',b.dataset.size===SIZE);b.setAttribute('aria-pressed',b.dataset.size===SIZE);
+  b.onclick=()=>{SIZE=b.dataset.size;$$('.size').forEach(o=>{o.classList.toggle('on',o===b);o.setAttribute('aria-pressed',o===b)})}});bindNet()}
 /*NET*/
 bindStart();
 // a living backdrop behind the start card
