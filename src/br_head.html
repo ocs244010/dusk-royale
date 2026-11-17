@@ -102,6 +102,16 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
   #specbar b{color:#8ee6ff}#specbar span{display:block;font-size:11px;color:var(--dim);margin-top:2px}
   .zarr{display:inline-block;color:#8ee6ff;font-size:11px;line-height:1}
   .netcpu{display:flex;gap:8px;align-items:center;font-size:14px;margin:2px 0 6px;cursor:pointer}.netcpu input{width:18px;height:18px}
+  .bar.shb{height:5px;margin-bottom:3px}#shbar{background:#5cc8ff;box-shadow:0 0 6px #5cc8ff}
+
+  #hwheel{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;z-index:25;pointer-events:none}
+  #hwheel .hw{position:absolute;width:118px;padding:8px 6px;background:rgba(8,14,24,.82);border:1px solid rgba(120,200,255,.3);border-radius:8px;text-align:center;color:#dff2ff;font-size:12px;transition:transform .08s}
+  #hwheel .hw b{display:block;font-size:14px}#hwheel .hw span{display:block;color:var(--dim);font-size:11px}#hwheel .hw em{display:block;font-style:normal;font-size:16px;color:#8ee6ff}
+  #hwheel .hw.on{background:rgba(40,110,150,.9);border-color:#8ee6ff;transform:scale(1.08)}
+  #hwheel .hw0{left:91px;top:0}#hwheel .hw1{right:0;top:112px}#hwheel .hw2{left:91px;bottom:0}#hwheel .hw3{left:0;top:112px}
+  #hwheel .hwc{position:absolute;left:0;right:0;top:142px;text-align:center;font-size:11px;color:var(--dim)}
+  #shnum{color:#5cc8ff;font-size:20px;margin-left:6px;font-weight:700;white-space:nowrap}#gear[hidden]{display:none}
+  .gi .segs{display:flex;gap:3px}.gi .segs i{flex:1}
 </style>
 
 <div id="stage">
@@ -149,12 +159,12 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
       <h2>武器と道具</h2>
       <ul>
         <li>ハンドガン・サブマシンガン・ショットガン・アサルトライフル・ボルトアクション（スコープ付き・1発ずつ装填）。弾は小口径・中口径・散弾・大口径の4種類。ショットガンは1発ずつ込める</li>
-        <li>包帯（75まで回復）、救急キット（全回復）、防弾ベストとヘルメット（Lv1〜3・ダメージを軽減）。弾・回復は上を歩くだけで拾える（近づくと名前が出る）。防具は何も着ていなければ歩くだけで着る。着ているときと武器は、拾うボタンで好きなものと交換する（防具の耐久は名前の横に出る）。頭に当てるとダメージが大きい</li>
+        <li>包帯（75まで回復）、救急キット（全回復）、シールド（Lv1〜3・体力に+25／+50／+75。先にシールドが減る）、シールドパッチ（シールド+25・3秒）とシールドキット（シールド全回復・5秒）。弾・回復は上を歩くだけで拾える（近づくと名前が出る）。防具は何も着ていなければ歩くだけで着る。着ているときと武器は、拾うボタンで好きなものと交換する（防具の耐久は名前の横に出る）。頭に当てるとダメージが大きい</li>
         <li>伏せると見つかりにくく、弾も当たりにくい（動きは遅くなる）。車の上には跳んで乗れる（ボンネットから屋根へ）。開始から15秒間は誰も撃てない。倒した相手は持ち物を全部その場に落とす。青い壁の外は安全地帯の外で、毎秒ダメージを受ける</li>
       </ul>
       <h2>操作</h2>
       <ul>
-        <li>PC専用（キーボード＋マウス）：WASD移動、Shift走る、マウス視点（クリックで固定）、左クリック撃つ、右クリック構える（押したまま左クリックで撃てる）、Escで一時停止と感度設定、R装填、Q／1・2／マウスホイールで持ち替え、Z伏せる、E武器を拾う・開ける、H包帯、X救急キット（回復中にもう一度押すか撃つと中断。撃たれても回復は続く）、Space跳ぶ／障害物を乗り越える、Cしゃがむ（走りながらでスライディング）</li>
+        <li>PC専用（キーボード＋マウス）：WASD移動、Shift走る、マウス視点（クリックで固定）、左クリック撃つ、右クリック構える（押したまま左クリックで撃てる）、Escで一時停止と感度設定、R装填、Q／1・2／マウスホイールで持ち替え、Z伏せる、E武器を拾う・開ける、F回復（押すだけで体力とシールドの減り具合から自動で選ぶ。長押しすると4つの回復アイテムが出るので、マウスを動かして選んでFを離す。回復中にもう一度押すか撃つと中断。撃たれても回復は続く）、Space跳ぶ／障害物を乗り越える、Cしゃがむ（走りながらでスライディング）</li>
       </ul>
       <label class="sensrow">視点の感度 <input class="sens" type="range" min="0.3" max="2" step="0.05" aria-label="視点の感度"> <output class="sensv">1.00</output></label>
       <button class="btn" id="start">出撃する</button>

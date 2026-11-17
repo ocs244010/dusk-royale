@@ -11,8 +11,8 @@ function bcast(m,except){for(const c of NET.conns)if(c!==except&&c.open)try{c.se
 function sendTo(c,m){if(c&&c.open)try{c.send(m)}catch(_){}}
 const ser=it=>{const o={n:it.nid,k:it.kind};for(const f of['id','r','optic','lv','hp','amt','noBot','y'])if(it[f]!==undefined&&it[f]!==null)o[f]=it[f];return o};
 const des=o=>{const it={nid:o.n,kind:o.k};for(const f of['id','r','optic','lv','hp','amt','noBot','y'])if(o[f]!==undefined)it[f]=o[f];return it};
-function inv(a){return{s:a.slots.map(s=>s?{id:s.id,r:s.r||0,optic:s.optic||null,mag:s.mag||0}:null),c:a.cur,am:{...a.ammo},b:a.band,m:a.med,al:a.armorLv,ar:Math.round(a.armor),hl:a.helmLv,hm:Math.round(a.helm)}}
-function applyInv(a,v){if(!v)return;a.slots=v.s.map(s=>s?{...s}:null);a.cur=v.c;a.ammo={...v.am};a.band=v.b;a.med=v.m;a.armorLv=v.al;a.armor=v.ar;a.helmLv=v.hl;a.helm=v.hm}
+function inv(a){return{s:a.slots.map(s=>s?{id:s.id,r:s.r||0,optic:s.optic||null,mag:s.mag||0}:null),c:a.cur,am:{...a.ammo},b:a.band,m:a.med,ce:a.cell||0,bt:a.bat||0,al:a.armorLv,ar:Math.round(a.armor),hl:a.helmLv,hm:Math.round(a.helm)}}
+function applyInv(a,v){if(!v)return;a.slots=v.s.map(s=>s?{...s}:null);a.cur=v.c;a.ammo={...v.am};a.band=v.b;a.med=v.m;a.cell=v.ce||0;a.bat=v.bt||0;a.armorLv=v.al;a.armor=v.ar;a.helmLv=v.hl;a.helm=v.hm}
 
 // ---------- lobby ----------
 function netInfo(html){const el=$('netinfo');if(el)el.innerHTML=html}

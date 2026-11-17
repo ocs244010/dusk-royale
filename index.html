@@ -113,6 +113,16 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
   #specbar b{color:#8ee6ff}#specbar span{display:block;font-size:11px;color:var(--dim);margin-top:2px}
   .zarr{display:inline-block;color:#8ee6ff;font-size:11px;line-height:1}
   .netcpu{display:flex;gap:8px;align-items:center;font-size:14px;margin:2px 0 6px;cursor:pointer}.netcpu input{width:18px;height:18px}
+  .bar.shb{height:5px;margin-bottom:3px}#shbar{background:#5cc8ff;box-shadow:0 0 6px #5cc8ff}
+
+  #hwheel{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;z-index:25;pointer-events:none}
+  #hwheel .hw{position:absolute;width:118px;padding:8px 6px;background:rgba(8,14,24,.82);border:1px solid rgba(120,200,255,.3);border-radius:8px;text-align:center;color:#dff2ff;font-size:12px;transition:transform .08s}
+  #hwheel .hw b{display:block;font-size:14px}#hwheel .hw span{display:block;color:var(--dim);font-size:11px}#hwheel .hw em{display:block;font-style:normal;font-size:16px;color:#8ee6ff}
+  #hwheel .hw.on{background:rgba(40,110,150,.9);border-color:#8ee6ff;transform:scale(1.08)}
+  #hwheel .hw0{left:91px;top:0}#hwheel .hw1{right:0;top:112px}#hwheel .hw2{left:91px;bottom:0}#hwheel .hw3{left:0;top:112px}
+  #hwheel .hwc{position:absolute;left:0;right:0;top:142px;text-align:center;font-size:11px;color:var(--dim)}
+  #shnum{color:#5cc8ff;font-size:20px;margin-left:6px;font-weight:700;white-space:nowrap}#gear[hidden]{display:none}
+  .gi .segs{display:flex;gap:3px}.gi .segs i{flex:1}
 </style>
 
 <div id="stage">
@@ -160,12 +170,12 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
       <h2>武器と道具</h2>
       <ul>
         <li>ハンドガン・サブマシンガン・ショットガン・アサルトライフル・ボルトアクション（スコープ付き・1発ずつ装填）。弾は小口径・中口径・散弾・大口径の4種類。ショットガンは1発ずつ込める</li>
-        <li>包帯（75まで回復）、救急キット（全回復）、防弾ベストとヘルメット（Lv1〜3・ダメージを軽減）。弾・回復は上を歩くだけで拾える（近づくと名前が出る）。防具は何も着ていなければ歩くだけで着る。着ているときと武器は、拾うボタンで好きなものと交換する（防具の耐久は名前の横に出る）。頭に当てるとダメージが大きい</li>
+        <li>包帯（75まで回復）、救急キット（全回復）、シールド（Lv1〜3・体力に+25／+50／+75。先にシールドが減る）、シールドパッチ（シールド+25・3秒）とシールドキット（シールド全回復・5秒）。弾・回復は上を歩くだけで拾える（近づくと名前が出る）。防具は何も着ていなければ歩くだけで着る。着ているときと武器は、拾うボタンで好きなものと交換する（防具の耐久は名前の横に出る）。頭に当てるとダメージが大きい</li>
         <li>伏せると見つかりにくく、弾も当たりにくい（動きは遅くなる）。車の上には跳んで乗れる（ボンネットから屋根へ）。開始から15秒間は誰も撃てない。倒した相手は持ち物を全部その場に落とす。青い壁の外は安全地帯の外で、毎秒ダメージを受ける</li>
       </ul>
       <h2>操作</h2>
       <ul>
-        <li>PC専用（キーボード＋マウス）：WASD移動、Shift走る、マウス視点（クリックで固定）、左クリック撃つ、右クリック構える（押したまま左クリックで撃てる）、Escで一時停止と感度設定、R装填、Q／1・2／マウスホイールで持ち替え、Z伏せる、E武器を拾う・開ける、H包帯、X救急キット（回復中にもう一度押すか撃つと中断。撃たれても回復は続く）、Space跳ぶ／障害物を乗り越える、Cしゃがむ（走りながらでスライディング）</li>
+        <li>PC専用（キーボード＋マウス）：WASD移動、Shift走る、マウス視点（クリックで固定）、左クリック撃つ、右クリック構える（押したまま左クリックで撃てる）、Escで一時停止と感度設定、R装填、Q／1・2／マウスホイールで持ち替え、Z伏せる、E武器を拾う・開ける、F回復（押すだけで体力とシールドの減り具合から自動で選ぶ。長押しすると4つの回復アイテムが出るので、マウスを動かして選んでFを離す。回復中にもう一度押すか撃つと中断。撃たれても回復は続く）、Space跳ぶ／障害物を乗り越える、Cしゃがむ（走りながらでスライディング）</li>
       </ul>
       <label class="sensrow">視点の感度 <input class="sens" type="range" min="0.3" max="2" step="0.05" aria-label="視点の感度"> <output class="sensv">1.00</output></label>
       <button class="btn" id="start">出撃する</button>
@@ -201,7 +211,7 @@ const kk=(x,y)=>y*W+x;
 // ================= map: generated per game, size depends on player count =================
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const SIZES={small:{W:66,H:48,houses:11,gas:1,fuse:1,dawn:10*60,hills:5,cars:5,players:6},medium:{W:90,H:64,houses:18,gas:2,fuse:2,dawn:12*60,hills:8,cars:8,players:10},large:{W:116,H:82,houses:27,gas:3,fuse:3,dawn:15*60,hills:12,cars:11,players:16}};
-let DIST=[];const DNAME={yard:'コンテナ置き場',pad:'発着場',pit:'採掘場',post:'防衛陣地'};
+let DIST=[],TERR=[];const DNAME={yard:'コンテナ置き場',pad:'発着場',pit:'採掘場',post:'防衛陣地'};
 let HOUSES=[],LAMPS=[],CARS=[],COVER=[],VANT,META,BASE,HG,HGW,HGH;const HOFF=40;
 function genMap(size,seed0){CFG=SIZES[size];W=CFG.W;H=CFG.H;DAWN=CFG.dawn;
   const seed=seed0!==undefined?seed0:(Date.now()%100000)|0;for(let a=0;a<30;a++)if(tryGen(seed+a*7919,size))break;buildHeights(seed)}
@@ -238,6 +248,14 @@ function tryGen(seed,size){
     HOUSES.push({x,y,w,h,doors:doorsS,lit:0,shed})}
   if(HOUSES.length<CFG.fuse+3)return false;
   HOUSES.forEach((h,i)=>{h.i=i;h.lit=(i%3===0&&!h.shed)?1:0});
+  // roof terraces: a staircase along one door-less wall (a strip of tiles marked 'B') leads up to a flat roof with a low parapet
+  for(const h of HOUSES){if(h.shed||rnd()>.45)continue;
+    for(const sd of['s','n','e','w'].sort(()=>rnd()-.5)){if(h.doors.includes(sd))continue;const alongX=sd==='s'||sd==='n',len=alongX?h.w:h.h;if(len<4)continue;
+      const r=sd==='s'?h.y+h.h:sd==='n'?h.y-1:sd==='e'?h.x+h.w:h.x-1,a0=alongX?h.x:h.y,flip=rnd()<.5;
+      const at=k=>alongX?[a0+k,r]:[r,a0+k],start=flip?len:-1;let ok=true;
+      for(let k=-1;k<=len&&ok;k++){const[x,y]=at(k);if(!g[y]||g[y][x]!=='.')ok=false}
+      if(!ok)continue;for(let k=0;k<len;k++){const[x,y]=at(k);g[y][x]='B'}h.terr={sd,alongX,r,a0,len,flip};break}}
+
   for(const h of HOUSES){
     for(let y=h.y;y<h.y+h.h;y++)for(let x=h.x;x<h.x+h.w;x++){const edge=x===h.x||y===h.y||x===h.x+h.w-1||y===h.y+h.h-1;g[y][x]=edge?'#':'f'}
     h.my=h.y+Math.floor(h.h/2);
@@ -290,7 +308,7 @@ function tryGen(seed,size){
   if(!best)return false;g[best[1]][best[0]]='K';
   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(g[y][x]==='Z')g[y][x]='.';
   // cover & high ground: stepped container towers, waist-high barricades, cargo crates, rock outcrops
-  COVER=[];{const want={small:[1,1,2,1,2,10,6,2],medium:[2,1,3,2,3,16,10,4],large:[3,1,4,3,5,24,16,6]}[size],kinds=['hq','ship','bunker','gantry','tower','wall','crate','rock'],fp={hq:[4,3],ship:[6,3],bunker:[3,2],gantry:[7,1],tower:[3,1],wall:[1,1],crate:[1,1],rock:[2,2],cont:[2,1]};
+  COVER=[];{const want={small:[1,1,2,1,2,10,6,2],medium:[2,1,3,2,3,16,10,4],large:[3,1,4,3,5,24,16,6]}[size],kinds=['hq','ship','bunker','gantry','tower','wall','crate','rock'],fp={hq:[4,3],ship:[6,3],bunker:[3,2],gantry:[7,1],tower:[3,1],wall:[1,1],crate:[1,1],rock:[2,2],cont:[3,1]};
    const okAt=(x0,y0,w,h)=>{for(let y=y0-2;y<y0+h+2;y++)for(let x=x0-2;x<x0+w+2;x++){const c=(g[y]||[])[x];if(c===undefined)return false;const inside=x>=x0&&x<x0+w&&y>=y0&&y<y0+h,ring1=x>=x0-1&&x<x0+w+1&&y>=y0-1&&y<y0+h+1;
        if(inside&&c!=='.')return false;if(ring1&&!'.T'.includes(c))return false;if('#dwDLf'.includes(c))return false}return true};
    // each district first gets its own set, packed tight
@@ -363,13 +381,15 @@ function slab(x,z,tx,ty,gap){const dx=x-(tx*T+T/2),dz=z-(ty*T+T/2),ax=Math.abs(d
 let ROB=false,SOLIDSOFT=true;
 let FEET=null;const STEP=.55;
 function colHit(x,z,tx,ty){const l=cols.get(kk(tx,ty));if(!l)return false;
-  for(const o of l){if(o.top!==undefined&&FEET!==null&&FEET>=o.top-STEP)continue;if(o.soft&&ROB&&!SOLIDSOFT)continue;if(o.bot!==undefined&&(FEET!==null?FEET:heightAt(x,z))+1.75<=o.bot)continue;if(o.r){if(Math.hypot(x-o.x,z-o.z)<o.r)return true}else if(x>o.x0&&x<o.x1&&z>o.z0&&z<o.z1)return true}return false}
+  for(const o of l){if(o.top!==undefined&&FEET!==null&&FEET>=o.top-STEP)continue;if(o.h!==undefined&&FEET!==null&&FEET>=o.h-.05)continue;if(o.soft&&ROB&&!SOLIDSOFT)continue;if(o.bot!==undefined&&(FEET!==null?FEET:heightAt(x,z))+1.75<=o.bot)continue;if(o.r){if(Math.hypot(x-o.x,z-o.z)<o.r)return true}else if(x>o.x0&&x<o.x1&&z>o.z0&&z<o.z1)return true}return false}
 function solidAt(x,z){const tx=TX(x),ty=TX(z);if(tx<2||ty<2||tx>=W-2||ty>=H-2)return true;const c=grid[ty][tx];
+  // standing on a roof terrace you walk over the wall tops
+  if((c==='#'||c==='w'||c==='d')&&FEET!=null){const hh=HOUSES.find(h=>tx>=h.x&&tx<h.x+h.w&&ty>=h.y&&ty<h.y+h.h);if(hh&&FEET>=hh.pad+WALLH-.05)return colHit(x,z,tx,ty)}
   if(c==='#'||c==='w')return slab(x,z,tx,ty,0);
   if(c==='d')return slab(x,z,tx,ty,doorOpen(tx,ty)?DOORW/2:0)||leafHit(x,z,tx,ty);
   return colHit(x,z,tx,ty)||leafHit(x,z,tx,ty)}
 // you can't walk through a swung-open door leaf either
-function leafHit(x,z,tx,ty){const dl=DOORP.get(kk(tx,ty));if(!dl)return false;for(const d of dl)if(doorLeafAt(d,x,d.pad+1,z))return true;return false}
+function leafHit(x,z,tx,ty){const dl=DOORP.get(kk(tx,ty));if(!dl)return false;for(const d of dl){if(FEET!=null&&FEET>d.pad+DOORH-.3)continue;if(doorLeafAt(d,x,d.pad+1,z))return true}return false}
 function sightAt(x,z){const tx=TX(x),ty=TX(z),c=tile(tx,ty);if(c==='#')return slab(x,z,tx,ty,0);if(c==='d')return slab(x,z,tx,ty,doorOpen(tx,ty)?DOORW/2:0);
   if(c==='w'&&slab(x,z,tx,ty,0)){const lat=wallAxisX(tx,ty)?Math.abs(x-(tx*T+T/2)):Math.abs(z-(ty*T+T/2));return lat>WIN.ow/2}return false}
 function free(x,z,r){for(const a of[-r,0,r])for(const b of[-r,0,r])if(solidAt(x+a,z+b))return false;return true}
@@ -820,7 +840,7 @@ function placeCan(cn){const g=new THREE.Group();g.add(new THREE.Mesh(canGeo,M.je
   g.position.set(cn.x,groundY(cn.x,cn.z),cn.z);g.rotation.y=cn.x*7%6;world.add(g);cn.mesh=g}
 function inst(geo,mat,list,fn,colorFn){const im=new THREE.InstancedMesh(geo,mat,Math.max(1,list.length));const m=new THREE.Matrix4(),col=new THREE.Color();
   list.forEach((p,i)=>{fn(m,p,i);im.setMatrixAt(i,m);if(colorFn){colorFn(col,p,i);im.setColorAt(i,col)}});im.count=list.length;world.add(im);return im}
-function buildWorld(){
+function buildWorld(){TERR=[];
   scene.remove(world);world=new THREE.Group();scene.add(world);lamps.length=0;lampSrc.length=0;
   const B=Batch();
   // ground: grass blended with dirt (forest floor, worn patches) and gravel (road shoulders); macro variation hides tiling
@@ -874,7 +894,23 @@ function buildWorld(){
     // roof: thin deck, then a hex-panelled dome (main modules) or a barrel vault (small huts); glow ring at the base
     {const rw=sw+2*SL+.3,rd=sd+2*SL+.3,ry=pd+WALLH;B.add(BOX(rw,.22,rd),HULLD,MX(cx,ry+.11,cz));h.roof={cx,cz,ry,rw,rd};
      for(const s of[-1,1]){B.add(BOX(rw+.02,.035,.02),GLOW,MX(cx,ry+.15,cz+s*(rd/2+.01)));B.add(BOX(.02,.035,rd+.02),GLOW,MX(cx+s*(rw/2+.01),ry+.15,cz))}
-     if(!h.shed){const ra=rw/2-.15,rb=rd/2-.15,hd=Math.min(3.2,Math.max(1.8,Math.min(ra,rb)*.75));Object.assign(h.roof,{ra,rb,hd});
+     if(h.terr){const tp=ry+.22,tr=h.terr,PT=.9;addCol({x0:cx-rw/2,x1:cx+rw/2,z0:cz-rd/2,z1:cz+rd/2,top:tp,bot:ry});
+       // stairs: 11 steps along the strip, then a landing that bridges onto the roof
+       const nS=11,rise=(tp-pd)/nS,run=.5,stripLo=tr.a0*T,stripHi=(tr.a0+tr.len)*T,dir=tr.flip?-1:1,aStart=tr.flip?stripHi-.25:stripLo+.25;
+       const c0=tr.r*T,c1=c0+T,cMid=c0+T/2,inward=(tr.sd==='s'||tr.sd==='e')?-1:1,wallC=(tr.sd==='s'?(h.y+h.h-.5):tr.sd==='n'?(h.y+.5):tr.sd==='e'?(h.x+h.w-.5):(h.x+.5))*T;
+       const put=(a1,a2,p1,p2,y0,y1,mat,col)=>{const ax0=Math.min(a1,a2),ax1=Math.max(a1,a2),px0=Math.min(p1,p2),px1=Math.max(p1,p2);const[X0,X1,Z0,Z1]=tr.alongX?[ax0,ax1,px0,px1]:[px0,px1,ax0,ax1];
+         B.add(BOX(X1-X0,y1-y0,Z1-Z0),mat,MX((X0+X1)/2,(y0+y1)/2,(Z0+Z1)/2));if(col)addCol({x0:X0,x1:X1,z0:Z0,z1:Z1,top:y1})};
+       for(let k=0;k<nS;k++){const a1=aStart+dir*k*run,a2=a1+dir*run,y1=pd+rise*(k+1);put(a1,a2,c0+.12,c1-.12,pd-.3,y1,k%2?HULLD:HULL,true);const eo=inward>0?c0+.14:c1-.14;B.add(BOX(tr.alongX?run:.04,.025,tr.alongX?.04:run),GLOW,MX(tr.alongX?(a1+a2)/2:eo,y1+.01,tr.alongX?eo:(a1+a2)/2))}
+       const l1=aStart+dir*nS*run,l2=l1+dir*1.8;put(l1,l2,wallC,inward>0?c0+.12:c1-.12,tp-.22,tp,HULLD,true);
+       // parapet round the roof, open where the landing meets it
+       const R0={x0:cx-rw/2,x1:cx+rw/2,z0:cz-rd/2,z1:cz+rd/2},gapLo=Math.min(l1,l2)-.15,gapHi=Math.max(l1,l2)+.15;
+       const wallP=(X0,X1,Z0,Z1)=>{if(X1-X0<.05||Z1-Z0<.05)return;B.add(BOX(X1-X0,PT,Z1-Z0),HULL,MX((X0+X1)/2,tp+PT/2,(Z0+Z1)/2));B.add(BOX(X1-X0+.02,.04,Z1-Z0+.02),GLOW,MX((X0+X1)/2,tp+PT+.02,(Z0+Z1)/2));addCol({x0:X0,x1:X1,z0:Z0,z1:Z1,top:tp+PT,bot:tp-.05})};
+       for(const side of['s','n','e','w']){const t=.14;let seg=side==='s'?[R0.x0,R0.x1,R0.z1-t,R0.z1]:side==='n'?[R0.x0,R0.x1,R0.z0,R0.z0+t]:side==='e'?[R0.x1-t,R0.x1,R0.z0,R0.z1]:[R0.x0,R0.x0+t,R0.z0,R0.z1];
+         if(side===tr.sd){if(tr.alongX){wallP(seg[0],gapLo,seg[2],seg[3]);wallP(gapHi,seg[1],seg[2],seg[3])}else{wallP(seg[0],seg[1],seg[2],gapLo);wallP(seg[0],seg[1],gapHi,seg[3])}}else wallP(...seg)}
+       const P=(a,p)=>tr.alongX?[a,p]:[p,a],aOut=aStart-dir*1.3;
+       TERR.push({k:'terr',x:Math.min(h.x,tr.alongX?h.x:tr.r),y:Math.min(h.y,tr.alongX?tr.r:h.y),w:tr.alongX?h.w:h.w+1,h:tr.alongX?h.h+1:h.h,house:h,
+         route:[P(aOut,cMid+.2),P(aStart+dir*.3,cMid+.2),P(aStart+dir*(nS*run-.3),cMid+.2),P((l1+l2)/2,cMid+.2),P((l1+l2)/2,wallC+inward*1.2),[cx,cz]],deck:{base:tp,spots:[[cx,cz]],ground:[],gy:pd}})}
+     else if(!h.shed){const ra=rw/2-.15,rb=rd/2-.15,hd=Math.min(3.2,Math.max(1.8,Math.min(ra,rb)*.75));Object.assign(h.roof,{ra,rb,hd});
        B.add(new THREE.SphereGeometry(1,40,14,0,Math.PI*2,0,Math.PI/2),DOME,MX(cx,ry+.2,cz,0,0,0,ra,hd,rb));
        const ring=new THREE.TorusGeometry(1,.02,4,48);ring.rotateX(Math.PI/2);B.add(ring,GLOW,MX(cx,ry+.27,cz,0,0,0,ra+.04,1,rb+.04));B.add(ring,HULLD,MX(cx,ry+.23,cz,0,0,0,ra+.03,3,rb+.03));
        B.add(new THREE.CylinderGeometry(.5,.6,.25,12),HULLD,MX(cx,ry+.2+hd,cz));B.add(new THREE.CylinderGeometry(.03,.03,1.2,6),HULLD,MX(cx+.25,ry+.8+hd,cz));B.add(new THREE.SphereGeometry(.06,8,6),GLOWR,MX(cx+.25,ry+1.42+hd,cz));
@@ -969,12 +1005,16 @@ function buildWorld(){
        const along=c.rot,L=1.96,gy=heightAt(cx,cz);B.add(BOX(along?.5:L,2.0,along?L:.5),HULLD,MX(cx,gy+.15,cz));B.add(BOX(along?.56:L+.04,.08,along?L+.04:.56),HULL,MX(cx,gy+1.16,cz));
        for(const s of[-1,1])B.add(BOX(along?.02:L,.04,along?L:.02),GLOW,MX(cx+(along?s*.26:0),gy+.9,cz+(along?0:s*.26)));
        addCol(along?{x0:cx-.28,x1:cx+.28,z0:cz-.98,z1:cz+.98,top:gy+1.15}:{x0:cx-.98,x1:cx+.98,z0:cz-.28,z1:cz+.28,top:gy+1.15})}
-     else if(c.k==='cont'){// shipping container on its side, sometimes with a second one stacked crosswise - too tall to climb
-       const gy2=Math.min(heightAt(x0+.3,z0+.3),heightAt(x0+w-.3,z0+d-.3),heightAt(cx,cz)),L=c.rot?[1.96,3.9]:[3.9,1.96],cm=CONT[(c.v*5)|0];
-       box(cx,gy2+1.1,cz,L[0],2.8,L[1],cm);box(cx,gy2+2.52,cz,L[0]+.04,.05,L[1]+.04,HULLD);for(const s2 of[-1,1])B.add(BOX(c.rot?1.98:.04,2.2,c.rot?.04:1.98),HULLD,MX(cx+(c.rot?0:s2*1.95),gy2+1.2,cz+(c.rot?s2*1.95:0)));
-       for(let k=-3;k<=3;k++)B.add(BOX(c.rot?1.98:.05,2.3,c.rot?.05:1.98),HULLD,MX(cx+(c.rot?0:k*.5),gy2+1.25,cz+(c.rot?k*.5:0)));
-       const st=c.v>.65;if(st){box(cx,gy2+3.85,cz,L[0]*.95,2.6,L[1]*.95,CONT[(((c.v*5)|0)+3)%5]);B.add(BOX(L[0]*.96,.03,.03),GLOW,MX(cx,gy2+4.4,cz+L[1]*.48))}
-       for(let yy=c.y;yy<c.y+c.h;yy++)for(let xx=c.x;xx<c.x+c.w;xx++)tileBox(xx,yy,gy2+(st?5.1:2.55))}
+     else if(c.k==='cont'){// shipping container with a step crate at one end: crate 1.25 m -> container roof 2.55 m; stacked ones keep half the lower roof as a ledge
+       const ax=!c.rot,ts=[0,1,2].map(i=>[c.x+(ax?i:0),c.y+(ax?0:i)]),si=c.flip?0:2,ct=ts.filter((_,i)=>i!==si),sd=si===2?1:-1;
+       const ccx=(ct[0][0]+ct[1][0]+1)*T/2,ccz=(ct[0][1]+ct[1][1]+1)*T/2,L=ax?[3.9,1.96]:[1.96,3.9],cm=CONT[(c.v*5)|0];
+       const gy2=Math.min(heightAt(ccx-(ax?1.7:.7),ccz-(ax?.7:1.7)),heightAt(ccx+(ax?1.7:.7),ccz+(ax?.7:1.7)),heightAt(ccx,ccz));
+       box(ccx,gy2+1.1,ccz,L[0],2.8,L[1],cm);box(ccx,gy2+2.52,ccz,L[0]+.04,.05,L[1]+.04,HULLD);for(const s2 of[-1,1])B.add(BOX(ax?.04:1.98,2.2,ax?1.98:.04),HULLD,MX(ccx+(ax?s2*1.95:0),gy2+1.2,ccz+(ax?0:s2*1.95)));
+       for(let k=-3;k<=3;k++)B.add(BOX(ax?.05:1.98,2.3,ax?1.98:.05),HULLD,MX(ccx+(ax?k*.5:0),gy2+1.25,ccz+(ax?0:k*.5)));
+       const st=c.v>.65;if(st){const ux=ccx+(ax?-sd*.98:0),uz=ccz+(ax?0:-sd*.98);box(ux,gy2+3.85,uz,ax?1.92:1.86,2.6,ax?1.86:1.92,CONT[(((c.v*5)|0)+3)%5]);B.add(BOX(ax?1.9:.03,.03,ax?.03:1.9),GLOW,MX(ux+(ax?0:.94),gy2+4.4,uz+(ax?.94:0)))}
+       const[sx,sy]=ts[si],scx=(sx+.5)*T,scz=(sy+.5)*T,sg=heightAt(scx,scz);box(scx,sg+.55,scz,1.5,1.3,1.5,HULL);B.add(BOX(1.52,.03,.03),GLOW,MX(scx,sg+1.1,scz+.76));
+       tileBox(sx,sy,sg+1.25);const near=ts[1],far=ts[si===2?0:2];tileBox(near[0],near[1],gy2+2.55);tileBox(far[0],far[1],gy2+(st?5.1:2.55));
+       const W3=(t,o)=>[(t[0]+.5)*T+(ax?o:0),(t[1]+.5)*T+(ax?0:o)];c.route=[W3(ts[si],sd*1.6),W3(ts[si],0),W3(near,0)];c.deck={base:gy2+2.55,spots:[],ground:[],gy:gy2}}
      else if(c.k==='crate'){// cargo crate with a smaller box on top
        const gy=heightAt(cx,cz);box(cx,gy+.3,cz,1.5,2.0,1.5,CONT[(((c.v*5)|0)+1)%5]);box(cx,gy+1.31,cz,1.56,.05,1.56,HULLD);for(const s of[-1,1]){box(cx+s*.765,gy+.64,cz,.06,1.28,1.58,HULLD);box(cx,gy+.635,cz+s*.765,1.57,1.27,.06,HULLD)}
        if(c.v>.5){box(cx-.2,gy+1.6,cz+.15,.7,.55,.7,HULL);B.add(BOX(.72,.03,.03),GLOW,MX(cx-.2,gy+1.75,cz+.51));addCol({x0:cx-.56,x1:cx+.16,z0:cz-.21,z1:cz+.51,top:gy+1.88,bot:gy+1.3})}addCol({x0:cx-.78,x1:cx+.78,z0:cz-.78,z1:cz+.78,top:gy+1.3})}
@@ -1064,7 +1104,7 @@ const myOptic=id=>{const c=SIGHT[id];return c==='iron'||c===BASESIGHT[id]?null:c
 const HEADX={pistol:1.8,smg:1.5,shotgun:1.4,rifle:1.7,sniper:2.5};
 // rarity: higher tiers have less recoil and a faster reload; magazine size is the same at every rarity (damage stays the same so fights stay readable)
 const RAR=[{n:'ノーマル',c:'#d8d4cc',h:0xd8d4cc},{n:'レア',c:'#4aa0ff',h:0x4aa0ff},{n:'エピック',c:'#b47cff',h:0xb47cff}];
-const VEST=[null,{cap:50,abs:.35},{cap:75,abs:.45},{cap:100,abs:.55}],HELM=[null,{cap:30,abs:.3},{cap:50,abs:.4},{cap:70,abs:.5}];
+const VEST=[null,{cap:25,abs:1},{cap:50,abs:1},{cap:75,abs:1}],HELM=[null,{cap:30,abs:.3},{cap:50,abs:.4},{cap:70,abs:.5}];
 const wMag=w=>WEAP[w.id].mag,wKick=w=>WEAP[w.id].kick*(1-.15*(w.r||0)),wReload=w=>WEAP[w.id].reload*(1-.1*(w.r||0));
 const wScore=w=>w?WEAP[w.id].tier*3+(w.r||0)+(w.id==='pistol'?0:1):-1;
 function rollR(){const q=Math.random();return q<.6?0:q<.9?1:2}
@@ -1327,6 +1367,8 @@ function gearParts(kind,lv,ground){const out=[],A=(g,c,m,f='f')=>out.push([g,c,m
 function itemParts(key){const out=[],A=(g,c,m,f)=>out.push([g,c,m,f]),cy=(a,b,h,s=10)=>new THREE.CylinderGeometry(a,b,h,s);
   if(key==='bandage'){for(const[x,z,ry]of[[-.045,0,.1],[.05,.012,-.15]]){A(cy(.034,.034,.085,14),0xe6e0d0,MX(x,.034,z,ry,0,Math.PI/2),'f');A(cy(.012,.012,.087,8),0xb8b0a0,MX(x,.034,z,ry,0,Math.PI/2),'c')}
     A(BOX(.07,.003,.11),0xe6e0d0,MX(-.03,.0015,.09,.3),'f');A(gSlab(.13,.08,.016),0x5e6450,MX(.02,.008,-.085,.25,-Math.PI/2),'c');A(BOX(.07,.002,.03),0xd8d4c8,MX(.02,.017,-.085,.25),'c')}
+  else if(key==='cell'){A(cy(.035,.035,.13,14),0x2a3440,MX(0,.035,0,0,0,Math.PI/2),'m');A(cy(.026,.026,.09,14),0x5cc8ff,MX(0,.035,0,0,0,Math.PI/2),'r');for(const sx of[-1,1])A(cy(.038,.038,.016,14),0x1a1f26,MX(sx*.058,.035,0,0,0,Math.PI/2),'m')}
+  else if(key==='bat'){A(BOX(.2,.1,.14),0x232c36,MX(0,.05,0),'m');A(BOX(.16,.012,.1),0x5cc8ff,MX(0,.104,0),'r');for(const sx of[-1,1])A(BOX(.012,.06,.12),0x5cc8ff,MX(sx*.101,.05,0),'r');A(BOX(.08,.02,.03),0x111418,MX(0,.115,.04),'m')}
   else if(key==='medkit'){A(gSlab(.27,.18,.085),0x7a1f1b,MX(0,.0425,0,0,-Math.PI/2),'f');A(BOX(.26,.006,.004),0x1a1a1a,MX(0,.07,.0875),'m');
     A(BOX(.12,.01,.04),0xe8e4da,MX(0,.087,0),'f');A(BOX(.04,.01,.12),0xe8e4da,MX(0,.0875,0),'f');for(const sx of[-1,1])A(BOX(.02,.012,.07),0x2a1210,MX(sx*.1,.087,0),'f');
     A(BOX(.012,.02,.06),0x1a1a1a,MX(.14,.055,0),'m');for(let k=0;k<3;k++)A(BOX(.26,.01,.004),0x4a1512,MX(0,.02+k*.02,-.0915),'f')}
@@ -1359,7 +1401,7 @@ const IM={f:SM({vertexColors:true,map:GTX.cloth,metalness:0,roughness:.94,envMap
   m:SM({vertexColors:true,map:GTX.metal,metalness:.85,roughness:.32}),p:SM({vertexColors:true,map:GTX.metal,metalness:.35,roughness:.62,envMapIntensity:.7}),
   g:SM({vertexColors:true,metalness:.2,roughness:.05,envMapIntensity:2,transparent:true,opacity:.6,depthWrite:false}),c:SM({vertexColors:true,map:cardTex,metalness:0,roughness:.85,envMapIntensity:.3}),
   r:SM({vertexColors:true,metalness:0,roughness:.42,envMapIntensity:.8})};
-const ITEMCACHE={},SCL={ammo_light:1.5,ammo_medium:1.35,ammo_shell:1.3,bandage:1.3,medkit:1.15};
+const ITEMCACHE={},SCL={ammo_light:1.5,ammo_medium:1.35,ammo_shell:1.3,bandage:1.3,medkit:1.15,cell:1.4,bat:1.25};
 function itemKey(it){return it.kind==='optic'?'optic_'+it.id:it.kind==='armor'?'vest'+it.lv:it.kind==='helmet'?'helm'+it.lv:it.kind==='ammo'?'ammo_'+it.id:it.kind}
 function itemModel(it){const key=itemKey(it);let c=ITEMCACHE[key];
   if(!c){const parts=key.startsWith('vest')?gearParts('vest',+key[4]):key.startsWith('helm')?gearParts('helm',+key[4],true):itemParts(key);const gs=mergeColored(parts);
@@ -1372,6 +1414,8 @@ const ICONS={
   armor:lv=>`<svg viewBox="0 0 24 24"><path d="M8 3h2.5c.4 1.6 1 2.3 1.5 2.3S13.1 4.6 13.5 3H16l1 3 2 1v12.5c0 .8-.7 1.5-1.5 1.5h-11C5.7 21 5 20.3 5 19.5V7l2-1z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>${lv>1?'<path d="M8 13.5h8M8 16.5h8" stroke="currentColor" stroke-width="1.4"/>':''}${lv>2?'<path d="M5 7.5 2.5 9.5 3.5 12.5 5 12M19 7.5l2.5 2-1 3-1.5-.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>':''}</svg>`,
   helmet:lv=>`<svg viewBox="0 0 24 24"><path d="M3.5 16C3.5 9.5 7.3 5 12 5s8.5 4.5 8.5 11z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2.5 16h19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>${lv>1?'<path d="M5 12.5h3M16 12.5h3" stroke="currentColor" stroke-width="1.6"/>':''}${lv>2?'<path d="M5.5 16.5v2.5h13v-2.5" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="4.5" cy="16" r="2" fill="currentColor"/><circle cx="19.5" cy="16" r="2" fill="currentColor"/>':''}</svg>`,
   bandage:()=>`<svg viewBox="0 0 24 24"><ellipse cx="9" cy="12" rx="4" ry="6" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5"/><ellipse cx="9" cy="12" rx="1.4" ry="2.2" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M9 6h8l3 4-3 2H9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+  cell:()=>`<svg viewBox="0 0 24 24"><rect x="8" y="4" width="8" height="16" rx="2" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.5h4M12.8 8l-2.4 4h3.2l-2.4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
+  bat:()=>`<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5"/><path d="M21 10v4M13 8.5l-3 4h4l-3 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`,
   medkit:()=>`<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5"/><path d="M9 7V5h6v2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 10.5v6M9 13.5h6" stroke="currentColor" stroke-width="2.2"/></svg>`,
   light:()=>`<svg viewBox="0 0 24 24">${[6,11,16].map(x=>`<path d="M${x} 20v-9c0-2.5 1.2-5 2-6 .8 1 2 3.5 2 6v9z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>`).join('')}</svg>`,
   shell:()=>`<svg viewBox="0 0 24 24">${[5,13].map(x=>`<rect x="${x}" y="4" width="6" height="12" rx="1" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.4"/><rect x="${x-.5}" y="16" width="7" height="4" fill="currentColor"/>`).join('')}</svg>`,
@@ -1586,22 +1630,23 @@ function rollLoot(force){const r=force?0:Math.random();
   if(r<.4){const q=Math.random();const id=force?(q<.1?'pistol':q<.4?'smg':q<.58?'shotgun':q<.9?'rifle':'sniper'):(q<.28?'pistol':q<.53?'smg':q<.72?'shotgun':q<.92?'rifle':'sniper');
     return[{kind:'weapon',id,r:rollR()},{kind:'ammo',id:WEAP[id].ammo,amt:id==='sniper'?10:WEAP[id].mag*2}]}
   if(r<.55){const t=['light','light','shell','medium','medium','heavy'][(Math.random()*6)|0];return[{kind:'ammo',id:t,amt:t==='shell'?10:t==='heavy'?15:t==='medium'?40:45}]}
-  if(r<.83)return[Math.random()<.72?{kind:'bandage',amt:Math.random()<.65?1:2}:{kind:'medkit',amt:1}];
-  const lv=rollLv();return Math.random()<.55?[{kind:'armor',lv,hp:VEST[lv].cap}]:[{kind:'helmet',lv,hp:HELM[lv].cap}]}
+  if(r<.83){const q=Math.random();return[q<.34?{kind:'bandage',amt:Math.random()<.65?1:2}:q<.7?{kind:'cell',amt:Math.random()<.5?1:2}:q<.83?{kind:'medkit',amt:1}:{kind:'bat',amt:1}]}
+  const lv=rollLv();return[{kind:'armor',lv,hp:VEST[lv].cap}]}
 const itemRar=it=>it.kind==='optic'?OPTICS[it.id].rk:it.kind==='weapon'?(it.r||0):(it.kind==='armor'||it.kind==='helmet')?it.lv-1:-1;
 function spawnItem(it,x,z,y){it.x=x;it.z=z;if(y!==undefined)it.y=y;const rr=itemRar(it),g=new THREE.Group();let m;
   if(it.kind==='weapon'){m=gunLOD(it.id,it.r,it.optic);m.rotation.set(0,0,Math.PI/2);m.position.y=.035;g.add(m)}else g.add(itemModel(it));
   const glow=new THREE.Mesh(GLOWGEO,glowMat(rr));const gs=it.kind==='weapon'?1.1:it.kind==='armor'?.8:.6;glow.scale.set(gs,1,gs);glow.position.y=.012;g.add(glow);
   g.position.set(x,y!==undefined?y:groundY(x,z),z);g.rotation.y=Math.random()*6;world.add(g);it.mesh=g;ITEMS.push(it);return it}
 function removeItem(it){const i=ITEMS.indexOf(it);if(i>=0)ITEMS.splice(i,1);world.remove(it.mesh)}
-function itemLabel(it){return it.kind==='optic'?OPTICS[it.id].n:it.kind==='weapon'?(it.r?RAR[it.r].n+'・':'')+WEAP[it.id].name+(it.optic?'＋'+OPTICS[it.optic].n:''):it.kind==='helmet'?`ヘルメット Lv${it.lv}（耐久${Math.round(it.hp)}/${HELM[it.lv].cap}）`:it.kind==='armor'?`防弾ベスト Lv${it.lv}（耐久${Math.round(it.hp)}/${VEST[it.lv].cap}）`:it.kind==='ammo'?`${AMMONAME[it.id]} ×${it.amt}`:it.kind==='bandage'?`包帯 ×${it.amt}`:it.kind==='medkit'?'救急キット':'防弾ベスト'}
+function itemLabel(it){return it.kind==='optic'?OPTICS[it.id].n:it.kind==='weapon'?(it.r?RAR[it.r].n+'・':'')+WEAP[it.id].name+(it.optic?'＋'+OPTICS[it.optic].n:''):it.kind==='helmet'?`ヘルメット Lv${it.lv}（耐久${Math.round(it.hp)}/${HELM[it.lv].cap}）`:it.kind==='armor'?`シールド Lv${it.lv}（+${Math.round(it.hp)}/${VEST[it.lv].cap}）`:it.kind==='ammo'?`${AMMONAME[it.id]} ×${it.amt}`:it.kind==='bandage'?`包帯 ×${it.amt}`:it.kind==='medkit'?'救急キット':it.kind==='cell'?`シールドパッチ ×${it.amt}`:it.kind==='bat'?'シールドキット':'シールド'}
 function seedLoot(){ITEMS=[];
   for(const h of HOUSES){const n=h.shed?1:2+((Math.random()*2)|0);const opts=[];for(let y=h.y+1;y<h.y+h.h-1;y++)for(let x=h.x+1;x<h.x+h.w-1;x++)if(grid[y][x]==='f')opts.push({x,y});
     for(let k=0;k<n&&opts.length;k++){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);rollLoot(k===0&&!h.shed).forEach((it,j)=>spawnItem(it,c.x+(Math.random()-.5)*.8+j*.5,c.z+(Math.random()-.5)*.8))}
     // every building also has a spare box of ammo (a type that matches a gun already there when there is one)
-    if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),gun=ITEMS.find(i=>i.kind==='weapon'&&TX(i.x)>=h.x&&TX(i.x)<h.x+h.w&&TX(i.z)>=h.y&&TX(i.z)<h.y+h.h);
+    for(let q=h.shed?1:2;q>0&&opts.length;q--){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),gun=ITEMS.find(i=>i.kind==='weapon'&&TX(i.x)>=h.x&&TX(i.x)<h.x+h.w&&TX(i.z)>=h.y&&TX(i.z)<h.y+h.h);
       const t=gun&&Math.random()<.6?WEAP[gun.id].ammo:['light','light','medium','medium','shell','heavy'][(Math.random()*6)|0];spawnItem({kind:'ammo',id:t,amt:t==='shell'?10:t==='heavy'?10:t==='medium'?30:36},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
-    if(!h.shed&&opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),lv=rollLv();spawnItem(Math.random()<.5?{kind:'armor',lv,hp:VEST[lv].cap}:{kind:'helmet',lv,hp:HELM[lv].cap},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
+    if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);spawnItem(Math.random()<.25?{kind:'bat',amt:1}:{kind:'cell',amt:Math.random()<.5?1:2},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
+    if(!h.shed&&opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o),lv=rollLv();spawnItem({kind:'armor',lv,hp:VEST[lv].cap},c.x+(Math.random()-.5)*.6,c.z+(Math.random()-.5)*.6)}
     if(opts.length){const o=opts.splice((Math.random()*opts.length)|0,1)[0],c=ctr(o);spawnItem(Math.random()<.75?{kind:'bandage',amt:Math.random()<.6?1:2}:{kind:'medkit',amt:1},c.x+(Math.random()-.5)*.8,c.z+(Math.random()-.5)*.8)}}
   for(const c of CARS){const cx=c.dir==='x'?(c.tx+1)*T:c.tx*T+T/2,cz=c.dir==='x'?c.ty*T+T/2:(c.ty+1)*T;const ox=c.dir==='x'?0:1.6,oz=c.dir==='x'?1.6:0;
     if(free(cx+ox,cz+oz,.3))rollLoot().forEach((it,j)=>spawnItem(it,cx+ox+j*.5,cz+oz))}
@@ -1609,7 +1654,7 @@ function seedLoot(){ITEMS=[];
 
 // ---------- actors ----------
 function newActor(i,isMe,x,z){const a={i,me:isMe,name:isMe?'あなた':'CPU'+i,x,z,r:.3,yaw:0,pitch:0,face:0,hp:100,armor:0,armorLv:0,helm:0,helmLv:0,alive:true,kills:0,dmgDone:0,
-  slots:[null,null],cur:0,ammo:{light:0,shell:0,medium:0,heavy:0},dmgFrom:{},dmgTo:{},dmgOnAmt:0,dmgOnT:-99,band:0,med:0,cool:0,reloadT:0,healT:0,healKind:null,walk:0,moving:false,lastHitBy:null,place:0,sv:true};
+  slots:[null,null],cur:0,ammo:{light:0,shell:0,medium:0,heavy:0},dmgFrom:{},dmgTo:{},dmgOnAmt:0,dmgOnT:-99,band:0,med:0,cell:0,bat:0,cool:0,reloadT:0,healT:0,healKind:null,walk:0,moving:false,lastHitBy:null,place:0,sv:true};
   if(!isMe){a.skill=.3+Math.random()*.55;a.aggr=Math.random();a.react=.35+Math.random()*.4;a.path=[];a.target=null;a.mode='loot';a.lookT=Math.random()*.3;a.enemy=null;a.seen=0;a.idle=Math.random();
     a.strafe=Math.random()<.5?1:-1;a.strafeT=0;a.mesh=buildRig(i+1);world.add(a.mesh.g)}
   return a}
@@ -1625,7 +1670,7 @@ const feed=[];function killFeed(t){feed.unshift({t,life:6});if(feed.length>5)fee
 function renderFeed(){$('feed').innerHTML=feed.map(f=>`<div>${f.t}</div>`).join('')}
 function damage(v,dmg,by,wname,head,raw){if(!v.alive||(S.over&&!NET.on&&!SPEC.on)||NET.done)return null;if(!isFinite(dmg))return null;let abs=0,broke=false;
   if(!raw){if(head&&v.helmLv>0){const ab=Math.min(v.helm,dmg*HELM[v.helmLv].abs);v.helm-=ab;dmg-=ab;abs=ab;if(v.helm<=.5){v.helm=0;v.helmLv=0;broke=true}}
-    else if(!head&&v.armorLv>0){const ab=Math.min(v.armor,dmg*VEST[v.armorLv].abs);v.armor-=ab;dmg-=ab;abs=ab;if(v.armor<=.5){v.armor=0;v.armorLv=0;broke=true}}}
+    if(v.armorLv>0&&v.armor>0){const ab=Math.min(v.armor,dmg);v.armor-=ab;dmg-=ab;abs+=ab;if(v.armor<=.5){v.armor=0;broke=true}}}
   v.hp-=dmg;if(!isFinite(v.hp))v.hp=0;if(by)by.dmgDone+=dmg;if(v.me&&by)ME.dmgFrom[by.i]=(ME.dmgFrom[by.i]||0)+dmg;if(by&&by.me)ME.dmgTo[v.i]=(ME.dmgTo[v.i]||0)+dmg;
   if(by&&!by.me){if(by.dmgOn!==v||S.t-by.dmgOnT>6)by.dmgOnAmt=0;by.dmgOn=v;by.dmgOnAmt+=dmg+abs;by.dmgOnT=S.t}v.lastHitBy=by;if(by)v.hitAt=S.t;
   if(!v.me&&v.mesh)v.mesh.flinch=1;
@@ -1640,7 +1685,7 @@ function kill(v,by,wname){v.alive=false;v.hp=0;const alive=ALL.filter(a=>a.alive
   if(v.me&&by)S.recap.push({t:S.t,txt:`<b>${by.name}</b>に倒された（${wname||''}・${Math.round(Math.hypot(by.x-ME.x,by.z-ME.z))}m・受けたダメージ ${Math.round(ME.dmgFrom[by.i]||0)}／与えたダメージ ${Math.round(ME.dmgTo[by.i]||0)}）`});
   // drop everything
   const drops=[];v.slots.forEach(s=>{if(s)drops.push({kind:'weapon',id:s.id,r:s.r||0,optic:s.optic||null})});for(const k in v.ammo)if(v.ammo[k]>0)drops.push({kind:'ammo',id:k,amt:Math.min(90,v.ammo[k])});
-  if(v.band)drops.push({kind:'bandage',amt:v.band});if(v.med)drops.push({kind:'medkit',amt:1});if(v.armorLv&&v.armor>8)drops.push({kind:'armor',lv:v.armorLv,hp:Math.round(v.armor)});if(v.helmLv&&v.helm>6)drops.push({kind:'helmet',lv:v.helmLv,hp:Math.round(v.helm)});
+  if(v.band)drops.push({kind:'bandage',amt:v.band});if(v.med)drops.push({kind:'medkit',amt:1});if(v.cell)drops.push({kind:'cell',amt:v.cell});if(v.bat)drops.push({kind:'bat',amt:1});if(v.armorLv)drops.push({kind:'armor',lv:v.armorLv,hp:VEST[v.armorLv].cap});
   drops.forEach((it,j)=>{const a=j*1.3;spawnItem(it,v.x+Math.cos(a)*.6,v.z+Math.sin(a)*.6,elevOf(v)>.4?(v.me?ME.y:AY(v)):undefined)});
   if(v.me){end(false)}else{v.mesh.holder.visible=false;if(alive===1&&ME.alive)end(true)}}
 
@@ -1649,7 +1694,7 @@ const DN=[],_dn=new THREE.Vector3();
 function dmgNum(a,val,kind){const el=document.createElement('div');el.className='dn '+kind;el.textContent=typeof val==='number'?Math.max(1,Math.round(val)):val;$('dmgs').appendChild(el);
   DN.push({el,x:a.x+(Math.random()-.5)*.5,y:(a.me?ME.y:AY(a))+(kind==='brk'?1.6:2.05),z:a.z,t:kind==='brk'?1.2:.85,T:kind==='brk'?1.2:.85});if(DN.length>16){const o=DN.shift();o.el.remove()}}
 // ---------- floating item names (near or looked at) and pickup toasts ----------
-const tagCol=it=>it.kind==='optic'?RAR[OPTICS[it.id].rk].c:it.kind==='weapon'?RAR[it.r||0].c:(it.kind==='armor'||it.kind==='helmet')?LVCOL[it.lv]:it.kind==='medkit'?'#e07a6a':it.kind==='ammo'?'#d8c27a':'#e8e2d4';
+const tagCol=it=>it.kind==='optic'?RAR[OPTICS[it.id].rk].c:it.kind==='weapon'?RAR[it.r||0].c:(it.kind==='armor'||it.kind==='helmet')?LVCOL[it.lv]:it.kind==='medkit'?'#e07a6a':it.kind==='cell'||it.kind==='bat'?'#5cc8ff':it.kind==='ammo'?'#d8c27a':'#e8e2d4';
 const TAGP=[],_tg=new THREE.Vector3();let tagN=0;
 function drawTags(){const box=$('tags');let used=0;cam.updateMatrixWorld();
   if(ME.alive&&!S.over){const w=cvEl.clientWidth,h=cvEl.clientHeight,cp=Math.cos(ME.pitch),fx=-Math.sin(ME.yaw)*cp,fy=Math.sin(ME.pitch),fz=-Math.cos(ME.yaw)*cp,ey=cam.position.y,cand=[];
@@ -1740,7 +1785,7 @@ function fire(a){const w=wpn(a);if(S.t<15){if(a.me&&!S.graceMsg){S.graceMsg=1;sa
         if(res){const g=agg.get(r.actor)||{d:0,ab:0,h:false,b:false,k:false};g.d+=res.dmg;g.ab+=res.abs;g.h=g.h||r.head;g.b=g.b||res.broke;g.k=g.k||res.killed;agg.set(r.actor,g)}}
       else if(r.solid)impact(_v.set(r.end.x,r.end.y,r.end.z))}
     if(hitAny){S.hitMark=.2;S.hitHead=head;let arm=false,brk=false;
-      for(const[t_,g]of agg){dmgNum(t_,g.d,g.h?'h':g.ab>g.d*.15?'a':'b');if(g.b){dmgNum(t_,g.h?'ヘルメット破損':'ベスト破損','brk');brk=true}arm=arm||g.ab>0}
+      for(const[t_,g]of agg){dmgNum(t_,g.d,g.h?'h':g.ab>g.d*.15?'a':'b');if(g.b){brk=true}arm=arm||g.ab>0}
       S.hitArmor=arm;if(brk){sfx.brk();S.brkT=.5}else if(head)sfx.head();else if(arm)sfx.armor();else sfx.body()}
     if(w.mag===0&&a.ammo[W_.ammo]>0)setTimeout(()=>{if(wpn(a)===w&&w.mag===0)startReload(a)},250)}
   else botShoot(a,W_);
@@ -1766,7 +1811,7 @@ function botClear(b,e){if(b.clrE===e&&Math.abs(S.t-b.clrAt)<.2)return b.clr;b.cl
 // actor feet height: bots normally walk the terrain, but can stand on structures (b.y) after climbing them
 const AY=a=>!a.me&&a.y!==undefined?a.y:groundY(a.x,a.z);
 const elevOf=a=>(a.me?(ME.y??groundY(a.x,a.z)):AY(a))-groundY(a.x,a.z);
-const coverAt=(x,z)=>COVER.find(c=>c.route&&x>=c.x*T-.6&&x<=(c.x+c.w)*T+.6&&z>=c.y*T-.6&&z<=(c.y+c.h)*T+.6);
+const coverAt=(x,z)=>COVER.concat(TERR).find(c=>c.route&&x>=c.x*T-.6&&x<=(c.x+c.w)*T+.6&&z>=c.y*T-.6&&z<=(c.y+c.h)*T+.6);
 // a bot hunting someone on high ground walks to the structure's way up and climbs it
 function tryClimb(b,e){if(!e||!e.alive||b.climb||b.deckC||elevOf(e)<1.4)return false;if(b.climbGo&&S.t-b.climbGo.t<20&&(b.path.length||b.target))return true;const c=coverAt(e.x,e.z);if(!c||Math.hypot(e.x-b.x,e.z-b.z)>50)return false;
   const[sx,sz]=c.route[0];if(!botGoto(b,sx,sz,()=>{b.climbGo=null;b.climb={c,pts:c.route.slice(1),i:0,up:true};b.path=[];b.target=null}))return false;b.climbGo={c,t:S.t};b.mode='hunt';b.huntT=Math.max(b.huntT||0,12);b.climbN=(b.climbN||0)+1;return true}
@@ -1805,6 +1850,11 @@ function botShoot(a,W_){const t=a.enemy;if(!t||!t.alive)return;const d=Math.hypo
 const botPass=(tx,ty)=>!'#TVABw'.includes(tile(tx,ty));
 function botGoto(b,x,z,fn){if(!isFinite(x)||!isFinite(z))return false;x=Math.max(3*T,Math.min((W-3)*T,x));z=Math.max(3*T,Math.min((H-3)*T,z));const st=navTile(b.x,b.z),t=navTile(x,z),same=st.x===t.x&&st.y===t.y;let p=same?[]:bfs(st.x,st.y,t.x,t.y,botPass);if(!same&&!p.length)return false;b.path=p;b.target={x,z,fn};return true}
 function seedCoverLoot(){
+  for(const t of TERR){const R=t.house.roof,[cx,cz]=t.deck.spots[0],y=t.deck.base,ex=Math.max(1,R.rw/2-1.6),ez=Math.max(1,R.rd/2-1.6);
+    const drop=(list,x,z)=>list.forEach((q,j)=>{q.noBot=true;spawnItem(q,x+j*.5,z,y)});const lv=rollLv(),am=['light','medium','medium','shell','heavy'][(Math.random()*5)|0];
+    drop(rollLoot(true),cx-ex*.5,cz-ez*.5);drop([{kind:'ammo',id:am,amt:am==='shell'||am==='heavy'?10:am==='medium'?30:36}],cx+ex*.5,cz-ez*.5);
+    drop([Math.random()<.6?{kind:'armor',lv,hp:VEST[lv].cap}:Math.random()<.5?{kind:'bat',amt:1}:{kind:'medkit',amt:1}],cx-ex*.5,cz+ez*.5);
+    if(Math.random()<.5)drop(rollLoot(true),cx+ex*.5,cz+ez*.5);else drop([{kind:'bandage',amt:2}],cx+ex*.5,cz+ez*.5)}
   for(const d of DIST){const n=Math.round((d.x1-d.x0)*(d.y1-d.y0)/(d.k==='yard'?28:40));let k=0;
     for(let t=0;t<n*30&&k<n;t++){const x=(d.x0+Math.random()*(d.x1-d.x0))*T,z=(d.y0+Math.random()*(d.y1-d.y0))*T;if(!free(x,z,.6)||ITEMS.some(it=>Math.hypot(it.x-x,it.z-z)<4))continue;
       rollLoot(Math.random()<.4).forEach((it,j)=>spawnItem(it,x+j*.5,z));k++}}
@@ -1812,12 +1862,14 @@ function seedCoverLoot(){
     // every item a roll produces is placed (a weapon comes with its ammo), spread a little so they don't stack
     const put=(its,x,z,y)=>its.forEach((it,j)=>{it.noBot=true;spawnItem(it,x+(j?Math.cos(j*2.1)*.45:0),z+(j?Math.sin(j*2.1)*.45:0),y)});
     for(const[x,z]of c.deck.spots){const r=Math.random();put(r<.55?rollLoot(true):r<.8?[(lv=>({kind:'armor',lv,hp:VEST[lv].cap}))(2+(Math.random()<.35?1:0))]:[{kind:'medkit',amt:1}],x,z,c.deck.base)}
-    for(const[x,z]of c.deck.ground)put(rollLoot(Math.random()<.5),x,z,c.deck.gy)}}
+    for(const[x,z]of c.deck.ground)put(rollLoot(Math.random()<.5),x,z,c.deck.gy);
+    const am=()=>{const t=['light','medium','medium','shell','heavy'][(Math.random()*5)|0];return{kind:'ammo',id:t,amt:t==='shell'?10:t==='heavy'?10:t==='medium'?30:36}};
+    const sp=c.deck.ground[0]||c.deck.spots[0];if(sp)put([am()],sp[0]+.6,sp[1]+.3,c.deck.ground[0]?c.deck.gy:c.deck.base);if(c.deck.spots[0])put([am()],c.deck.spots[0][0]-.6,c.deck.spots[0][1]-.3,c.deck.base)}}
 function wantItem(b,it){if(it.y!==undefined||it.noBot)return false;if(it.kind==='weapon'){const worst=b.slots.reduce((m,s)=>Math.min(m,wScore(s)),99);return wScore(it)>worst&&!b.slots.some(s=>s&&s.id===it.id&&(s.r||0)>=(it.r||0))}
   if(it.kind==='armor')return it.lv>b.armorLv||(it.lv===b.armorLv&&b.armor<VEST[it.lv].cap*.5);if(it.kind==='helmet')return it.lv>b.helmLv||(it.lv===b.helmLv&&b.helm<HELM[it.lv].cap*.5);
-  if(it.kind==='bandage')return b.band<4;if(it.kind==='medkit')return b.med<1;if(it.kind==='ammo')return b.slots.some(s=>s&&WEAP[s.id].ammo===it.id)&&b.ammo[it.id]<90;return false}
+  if(it.kind==='bandage')return b.band<4;if(it.kind==='medkit')return b.med<1;if(it.kind==='cell')return b.cell<4;if(it.kind==='bat')return b.bat<1;if(it.kind==='ammo')return b.slots.some(s=>s&&WEAP[s.id].ammo===it.id)&&b.ammo[it.id]<90;return false}
 function botPick(b,it){if(!ITEMS.includes(it))return;if(it.kind==='weapon'){if(b.slots.every(s=>s))b.cur=b.slots.reduce((m,s,i)=>wScore(s)<wScore(b.slots[m])?i:m,0);const dr=giveWeapon(b,it.id,it.r,it.optic);if(dr)spawnItem({kind:'weapon',id:dr.id,r:dr.r||0},b.x,b.z);b.cur=bestSlot(b);b.ammo[WEAP[it.id].ammo]+=WEAP[it.id].mag}
-  else if(it.kind==='ammo')b.ammo[it.id]+=it.amt;else if(it.kind==='bandage')b.band+=it.amt;else if(it.kind==='medkit')b.med++;else if(it.kind==='armor'){b.armorLv=it.lv;b.armor=it.hp}else if(it.kind==='helmet'){b.helmLv=it.lv;b.helm=it.hp}
+  else if(it.kind==='ammo')b.ammo[it.id]+=it.amt;else if(it.kind==='bandage')b.band+=it.amt;else if(it.kind==='medkit')b.med++;else if(it.kind==='cell')b.cell+=it.amt;else if(it.kind==='bat')b.bat++;else if(it.kind==='armor'){b.armorLv=it.lv;b.armor=it.hp}else if(it.kind==='helmet'){b.helmLv=it.lv;b.helm=it.hp}
   removeItem(it)}
 function botPlanLoot(b){const zx=Z.to?Z.to.x:Z.cx,zz=Z.to?Z.to.z:Z.cz,zr=Z.to?Z.to.r:Z.r;
   const inNext=(x,z)=>Math.hypot(x-zx,z-zz)<zr*.95;
@@ -1855,7 +1907,8 @@ function botUpdate(b,dt){if(!b.alive)return;
   if(b.reloadT>0){b.reloadT-=dt;if(b.reloadT<=0)finishReload(b)}
   if(outZone(b)){b.zoneT=(b.zoneT||0)+dt;if(b.zoneT>=1){b.zoneT=0;damage(b,Z.dps,null,'安全地帯の外で倒れた',false,true)}}
   if(!b.alive)return;
-  if(b.healT>0){b.healT-=dt;if(b.healT<=0){if(b.healKind==='med'){b.med--;b.hp=100}else{b.band--;b.hp=Math.min(75,b.hp+25)}}return}
+  if(b.healT>0){b.healT-=dt;if(b.healT<=0){const cap=b.armorLv?VEST[b.armorLv].cap:0;if(b.healKind==='med'){b.med--;b.hp=100}else if(b.healKind==='cell'){b.cell--;b.armor=Math.min(cap,b.armor+25)}else if(b.healKind==='bat'){b.bat--;b.armor=cap}else{b.band--;b.hp=Math.min(75,b.hp+25)}}return}
+  if(!b.enemy&&b.armorLv&&b.armor<VEST[b.armorLv].cap-20&&(b.cell||b.bat)&&b.mode!=='flee'&&!outZone(b)&&S.t-(b.hitAt||-99)>2){const big=b.bat&&b.armor<VEST[b.armorLv].cap*.4;b.healT=big?5:3;b.healKind=big?'bat':'cell';return}
   // perception
   b.lookT-=dt;if(b.lookT<=0){b.lookT=.3;let best=null,bd=1e9;const meTaken=BOTS.reduce((n,x)=>n+(x.alive&&x!==b&&x.enemy===ME&&(x.mode==='fight'||x.mode==='hunt')?1:0),0);const bw=wpn(b),vr=bw&&bw.id==='sniper'?85:bw&&bw.id==='rifle'?65:50;
     for(const o of ALL){if(!o.alive||o===b)continue;const d=Math.hypot(o.x-b.x,o.z-b.z);if(d>vr||d>bd)continue;
@@ -1941,11 +1994,14 @@ function botVisuals(now,dt){for(const b of BOTS){const d=Math.hypot(b.x-ME.x,b.z
 const stanceOf=a=>a.me?(S.prone?'prone':(S.crouch||S.slide)?'crouch':'stand'):(a.prone?'prone':a.crouch?'crouch':'stand');
 
 // ---------- player ----------
+// doors, windows and lockers can only be used from their own floor (not from the roof terrace above)
+function sameFloor(tx,ty){const h=HOUSES.find(h=>tx>=h.x&&tx<h.x+h.w&&ty>=h.y&&ty<h.y+h.h),f=h?h.pad:groundY((tx+.5)*T,(ty+.5)*T);return Math.abs((ME.y??groundY(ME.x,ME.z))-f)<1.4}
+function reachThrough(x,y,z){const ey=(ME.y??groundY(ME.x,ME.z))+1.2,dx=x-ME.x,dy=y-ey,dz=z-ME.z,d=Math.hypot(dx,dy,dz)||1,r=rayHit(ME.x,ey,ME.z,dx/d,dy/d,dz/d,d,ME,false);return !(r.solid&&r.t<d-.35)}
 function myPickCandidate(){let best=null,bd=1e9;const fx=-Math.sin(ME.yaw),fz=-Math.cos(ME.yaw);
-  for(const it of ITEMS){if(it.kind!=='weapon'&&!((it.kind==='armor'&&ME.armorLv>0&&ME.armor>0)||(it.kind==='helmet'&&ME.helmLv>0&&ME.helm>0)))continue;const dx=it.x-ME.x,dz=it.z-ME.z,d=Math.hypot(dx,dz);if(d>1.8||!reachY(it))continue;const sc=d-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'item',it}}}
-  for(const dr of drawers.values()){if(dr.opened)continue;const dx=dr.px-ME.x,dz=dr.pz-ME.z,d=Math.hypot(dx,dz);if(d>1.7)continue;const sc=d+.3-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'drawer',dr}}}
-  for(const dd of doors.values()){if(dd.broken)continue;const c=ctr(dd),dx=c.x-ME.x,dz=c.z-ME.z,d=Math.hypot(dx,dz);if(d>2.1)continue;const sc=d+.6-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'door',dd}}}
-  for(const w of wins.values()){const c=ctr(w),dx=c.x-ME.x,dz=c.z-ME.z,d=Math.hypot(dx,dz);if(d>2)continue;const sc=d+.6-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'win',w}}}
+  for(const it of ITEMS){if(it.kind!=='weapon'&&!((it.kind==='armor'&&ME.armorLv>0&&ME.armor>0)||(it.kind==='helmet'&&ME.helmLv>0&&ME.helm>0)))continue;const dx=it.x-ME.x,dz=it.z-ME.z,d=Math.hypot(dx,dz);if(d>1.8||!reachY(it))continue;const sc=d-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd&&reachThrough(it.x,itY(it)+.15,it.z)){bd=sc;best={type:'item',it}}}
+  for(const dr of drawers.values()){if(dr.opened||!sameFloor(dr.x,dr.y))continue;const dx=dr.px-ME.x,dz=dr.pz-ME.z,d=Math.hypot(dx,dz);if(d>1.7)continue;const sc=d+.3-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd&&reachThrough(dr.px+dr.nx*.35,dr.pad+.7,dr.pz+dr.nz*.35)){bd=sc;best={type:'drawer',dr}}}
+  for(const dd of doors.values()){if(dd.broken||!sameFloor(dd.x,dd.y))continue;const c=ctr(dd),dx=c.x-ME.x,dz=c.z-ME.z,d=Math.hypot(dx,dz);if(d>2.1)continue;const sc=d+.6-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'door',dd}}}
+  for(const w of wins.values()){if(!sameFloor(w.x,w.y))continue;const c=ctr(w),dx=c.x-ME.x,dz=c.z-ME.z,d=Math.hypot(dx,dz);if(d>2)continue;const sc=d+.6-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd){bd=sc;best={type:'win',w}}}
   return best}
 function myUse(c){if(!c)return;
   if(c.type==='item'){const it=c.it;
@@ -1955,7 +2011,7 @@ function myUse(c){if(!c)return;
     else if(it.kind==='armor'||it.kind==='helmet'){const isV=it.kind==='armor',lv=isV?ME.armorLv:ME.helmLv,hp=isV?ME.armor:ME.helm;
       if(lv>0&&hp>0)spawnItem({kind:it.kind,lv,hp:Math.round(hp)},ME.x+.6*Math.cos(ME.yaw),ME.z-.6*Math.sin(ME.yaw));if(isV){ME.armorLv=it.lv;ME.armor=it.hp}else{ME.helmLv=it.lv;ME.helm=it.hp}
       removeItem(it);toast(it,'に交換した');tone(500,'triangle',.06,.12,800);return}
-    else{if(it.kind==='ammo')ME.ammo[it.id]+=it.amt;else if(it.kind==='bandage')ME.band+=it.amt;else if(it.kind==='medkit')ME.med++;toast(it,'を拾った')}
+    else{if(it.kind==='ammo')ME.ammo[it.id]+=it.amt;else if(it.kind==='bandage')ME.band+=it.amt;else if(it.kind==='medkit')ME.med++;else if(it.kind==='cell')ME.cell+=it.amt;else if(it.kind==='bat')ME.bat++;toast(it,'を拾った')}
     removeItem(it);tone(700,'triangle',.05,.06)}
   else if(c.type==='drawer'){S.useT={t:.5,fn:()=>openDrawer(c.dr)}}
   else if(c.type==='door'){const dd=c.dd;if(dd.open){dd.open=false;if(!free(ME.x,ME.z,ME.r)||BOTS.some(b=>b.alive&&!free(b.x,b.z,b.r))){dd.open=true}else bang(.5)}else{dd.open=true;bang(.3)}}
@@ -1969,27 +2025,45 @@ function useLabel(c){const K='E：';if(!c)return'';
     return K+itemLabel(it)+'を拾う'}
   if(c.type==='drawer')return K+'ロッカーを開ける';if(c.type==='door')return K+(c.dd.open?'扉を閉める':'扉を開ける');
   if(c.type==='win')return K+(c.w.state==='closed'?'窓を開ける':'窓を乗り越える');return''}
-function myHeal(kind){if(ME.healT>0){ME.healT=0;say('回復をやめた');return}if(ME.hp>=100){say('体力は満タン');return}
+function autoHealKind(){const cap=ME.armorLv?VEST[ME.armorLv].cap:0,miss=cap-ME.armor,canHp=(ME.hp<75&&ME.band)||(ME.hp<100&&ME.med),canSh=cap&&miss>0&&(ME.cell||ME.bat);
+  const hpItem=()=>ME.hp<=50&&ME.med?'med':ME.hp<75&&ME.band?'band':ME.med?'med':'band',shItem=()=>miss>=40&&ME.bat?'bat':ME.cell?'cell':'bat';
+  if(canHp&&(ME.hp<60||!canSh))return hpItem();if(canSh)return shItem();return null}
+function myHeal(kind){if(ME.healT>0){ME.healT=0;say('回復をやめた');return}
+  if(kind==='auto'){kind=autoHealKind();if(!kind){const cap=ME.armorLv?VEST[ME.armorLv].cap:0;say(ME.hp>=100&&(!cap||ME.armor>=cap)?'体力もシールドも満タン':'使える回復アイテムがない');return}}
+  if(kind==='cell'||kind==='bat'){const n=kind==='cell'?ME.cell:ME.bat,nm=kind==='cell'?'シールドパッチ':'シールドキット';if(!n){say(nm+'を持っていない');return}
+    if(!ME.armorLv){say('シールドを着ていない');return}if(ME.armor>=VEST[ME.armorLv].cap){say('シールドは満タン');return}
+    ME.healT=kind==='cell'?3:5;ME.healKind=kind;say(kind==='cell'?'シールドパッチを使っている…（3秒・シールド+25）':'シールドキットを使っている…（5秒・シールド全回復）');return}
+  if(ME.hp>=100){say('体力は満タン');return}
   if(kind==='med'){if(!ME.med){say('救急キットを持っていない');return}ME.healT=5;ME.healKind='med';say('救急キットを使っている…（5秒・全回復）')}
   else{if(!ME.band){say('包帯を持っていない');return}if(ME.hp>=75){say('包帯では75までしか回復できない');return}ME.healT=2.5;ME.healKind='band';say('包帯を巻いている…（2.5秒・+25）')}}
 // everything except weapons is picked up just by walking over it
 const itY=it=>it.y!==undefined?it.y:groundY(it.x,it.z),reachY=it=>Math.abs(itY(it)-ME.y)<1.2;
-function autoPickup(){for(const it of ITEMS.slice()){if(it.kind==='weapon'||it.kind==='optic')continue;if(Math.hypot(it.x-ME.x,it.z-ME.z)>1.1||!reachY(it))continue;
+function autoPickup(){for(const it of ITEMS.slice()){if(it.kind==='weapon'||it.kind==='optic')continue;if(Math.hypot(it.x-ME.x,it.z-ME.z)>1.1||!reachY(it))continue;if(!reachThrough(it.x,itY(it)+.15,it.z))continue;
     if(it.kind==='armor'||it.kind==='helmet'){const isV=it.kind==='armor',lv=isV?ME.armorLv:ME.helmLv,hp=isV?ME.armor:ME.helm;
       if(lv>0&&hp>0)continue;removeItem(it);if(lv>0&&hp>6)spawnItem({kind:it.kind,lv,hp:Math.round(hp)},ME.x+.8,ME.z);
       if(isV){ME.armorLv=it.lv;ME.armor=it.hp}else{ME.helmLv=it.lv;ME.helm=it.hp}toast(it,'を装備した');tone(500,'triangle',.06,.12,800);continue}
     else if(it.kind==='ammo')ME.ammo[it.id]+=it.amt;
     else if(it.kind==='bandage')ME.band+=it.amt;
     else if(it.kind==='medkit')ME.med++;
+    else if(it.kind==='cell')ME.cell+=it.amt;else if(it.kind==='bat')ME.bat++;
     toast(it,'を拾った');
     removeItem(it);tone(700,'triangle',.05,.06)}}
 
 // ---------- input ----------
 const btn={fire:false,ads:false,run:false};const tap={use:false,reload:false,swap:false,heal:false,jump:false,s1:false,s2:false};
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;btn.fire=btn.ads=btn.run=false});
-addEventListener('keydown',e=>{if(SPEC.on){if(e.code==='Escape')specStop();else if(e.code==='Space'||e.code==='ArrowRight'||e.code==='KeyD')specNext(1);else if(e.code==='ArrowLeft'||e.code==='KeyA')specNext(-1);return}keys[e.code]=true;if(!e.repeat){if(e.code==='KeyE')tap.use=true;if(e.code==='KeyR')tap.reload=true;if(e.code==='KeyQ')tap.swap=true;if(e.code==='KeyH'||e.code==='Digit4')tap.band=true;if(e.code==='KeyX'||e.code==='Digit5')tap.med=true;if(e.code==='KeyC')tap.crouch=true;
+addEventListener('keydown',e=>{if(SPEC.on){if(e.code==='Escape')specStop();else if(e.code==='Space'||e.code==='ArrowRight'||e.code==='KeyD')specNext(1);else if(e.code==='ArrowLeft'||e.code==='KeyA')specNext(-1);return}keys[e.code]=true;if(!e.repeat){if(e.code==='KeyE')tap.use=true;if(e.code==='KeyR')tap.reload=true;if(e.code==='KeyQ')tap.swap=true;if(e.code==='KeyF')healWheelDown();if(e.code==='KeyC')tap.crouch=true;
   if(e.code==='Space')tap.jump=true;if(e.code==='KeyZ')tap.prone=true;if(e.code==='Digit1')tap.s1=true;if(e.code==='Digit2')tap.s2=true}if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault()});
-addEventListener('keyup',e=>{keys[e.code]=false});
+addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyF')healWheelUp()});
+const HW={down:false,open:false,t0:0,sel:-1,dx:0,dy:0,timer:0},HWI=[['band','包帯','+25（75まで）'],['med','救急キット','全回復'],['cell','シールドパッチ','シールド+25'],['bat','シールドキット','シールド全回復']];
+function healWheelDown(){if(!ME||!ME.alive||HW.down)return;HW.down=true;HW.open=false;HW.sel=-1;HW.dx=HW.dy=0;clearTimeout(HW.timer);HW.timer=setTimeout(()=>{if(HW.down)healWheelOpen()},230)}
+function healWheelOpen(){HW.open=true;let el=$('hwheel');if(!el){el=document.createElement('div');el.id='hwheel';$('stage').appendChild(el)}
+  el.innerHTML=HWI.map(([k,n,d],i)=>`<div class="hw hw${i}" data-i="${i}"><b>${n}</b><span>${d}</span><em>${{band:ME.band,med:ME.med,cell:ME.cell,bat:ME.bat}[k]}</em></div>`).join('')+'<div class="hwc">F を離して使う</div>';el.hidden=false;healWheelSel()}
+function healWheelSel(){const el=$('hwheel');if(!el)return;el.querySelectorAll('.hw').forEach(d=>d.classList.toggle('on',+d.dataset.i===HW.sel))}
+function healWheelMove(dx,dy){if(!HW.open)return;HW.dx+=dx;HW.dy+=dy;const m=Math.hypot(HW.dx,HW.dy);if(m>400){HW.dx*=400/m;HW.dy*=400/m}if(m<25)return;
+  const a=Math.atan2(HW.dy,HW.dx);HW.sel=Math.abs(a)<Math.PI/4?1:Math.abs(a)>Math.PI*3/4?3:a<0?0:2;healWheelSel()}
+function healWheelUp(){if(!HW.down)return;HW.down=false;clearTimeout(HW.timer);const el=$('hwheel');if(el)el.hidden=true;
+  if(!HW.open){tap.heal=true;return}HW.open=false;if(HW.sel>=0)tap.healPick=HWI[HW.sel][0]}
 addEventListener('wheel',e=>{if(!ME||!ME.alive||S.over||!$('overlay').hidden||paused)return;const now=performance.now();if(now-(S.wheelT||0)<180)return;S.wheelT=now;tap.swap=true},{passive:true});
 
 let SENS=1;try{const v=parseFloat(localStorage.getItem('dr_sens'));if(v>=.2&&v<=2.5)SENS=v}catch(_){}
@@ -2007,7 +2081,7 @@ cvEl.addEventListener('pointerup',e=>{if(e.button===0)btn.fire=false;if(e.button
 addEventListener('mouseup',e=>{if(e.button===0)btn.fire=false;if(e.button===2)btn.adsM=false});
 cvEl.addEventListener('contextmenu',e=>e.preventDefault());
 
-document.addEventListener('mousemove',e=>{if(document.pointerLockElement===cvEl)look(e.movementX,e.movementY,.0012)});
+document.addEventListener('mousemove',e=>{if(HW.open){healWheelMove(e.movementX,e.movementY);return}if(document.pointerLockElement===cvEl)look(e.movementX,e.movementY,.0012)});
 document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement===cvEl)locked=true;else if(locked&&!S.over&&$('overlay').hidden){locked=false;paused=true;$('pause').hidden=false}});
 $('resume').addEventListener('click',()=>{paused=false;$('pause').hidden=true;lockPointer()});
 
@@ -2028,16 +2102,17 @@ let msgT=0;function say(s,t=2.2){$('msg').textContent=s;$('msg').style.opacity=1
 const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function hud(){const alive=ALL.filter(a=>a.alive).length;$('alive').textContent=alive;$('kills').textContent=ME.kills;
   $('hpbar').style.width=Math.max(0,ME.hp)+'%';const gk=[ME.armorLv,Math.ceil(ME.armor),ME.helmLv,Math.ceil(ME.helm)].join();if(gk!==hud.gk){hud.gk=gk;
-    const tile=(kind,lv,hp,cap,nm)=>`<div class="gi${lv?'':' none'}" style="--c:${LVCOL[lv]}" title="${nm}">${ICONS[kind](lv||1)}<div><b>${lv?'Lv'+lv:'なし'}</b><i><s style="width:${lv?Math.max(3,hp/cap*100).toFixed(0):0}%"></s></i></div></div>`;
-    $('gear').innerHTML=tile('armor',ME.armorLv,ME.armor,ME.armorLv?VEST[ME.armorLv].cap:1,'防弾ベスト')+tile('helmet',ME.helmLv,ME.helm,ME.helmLv?HELM[ME.helmLv].cap:1,'ヘルメット')}
+    const tile=(kind,lv,hp,cap,nm)=>{const n=kind==='armor'&&lv?lv:1,seg=Array.from({length:n},(_,k)=>{const f=lv?Math.max(0,Math.min(1,(hp-k*cap/n)/(cap/n))):0;return`<i><s style="width:${(f*100).toFixed(0)}%"></s></i>`}).join('');
+      return`<div class="gi${lv?'':' none'}" style="--c:${LVCOL[lv]}" title="${nm}">${ICONS[kind](lv||1)}<div><b>${lv?'Lv'+lv+(kind==='armor'?'　'+Math.round(hp)+'/'+cap:''):'なし'}</b><span class="segs">${seg}</span></div></div>`};
+    $('gear').innerHTML=tile('armor',ME.armorLv,ME.armor,ME.armorLv?VEST[ME.armorLv].cap:1,'シールド')}
   $('hpnum').textContent=Math.ceil(Math.max(0,ME.hp));
   const zt=Z.state==='wait'?`安全地帯が縮むまで <b>${fmt(Z.t)}</b>`:Z.state==='shrink'?`<b class="warn">縮小中</b> ${fmt(Z.t)}`:'<b class="warn">最終局面</b>';
   const nz=nextZ(),zdx=nz.x-ME.x,zdz=nz.z-ME.z,zd=Math.hypot(zdx,zdz)-nz.r;const zarr=zd>0&&ME.alive?`<br>次の安全地帯まで <span class="zarr" style="transform:rotate(${(ME.yaw-Math.atan2(-zdx,-zdz)).toFixed(2)}rad)">▲</span> <b>${Math.round(zd)}m</b>`:'';
   $('zone').innerHTML=zt+zarr+(outZone(ME)?`<br><b class="warn">安全地帯の外！ 毎秒${Z.dps}ダメージ</b>`:'');
   ME.slots.forEach((s,i)=>{const el=$('slot'+i);el.classList.toggle('on',i===ME.cur);el.style.borderLeft=s?`3px solid ${RAR[s.r||0].c}`:'';el.innerHTML=s?`<i>${i+1}</i>${WEAP[s.id].name}${s.optic?`<small class="opt">${OPTICS[s.optic].s}</small>`:''}<b>${s.mag}<small>/${ME.ammo[WEAP[s.id].ammo]}</small></b>`:`<i>${i+1}</i><span>空き</span>`});
-  $('heals').textContent=`包帯 ${ME.band}［H］・救急キット ${ME.med}［X］`;
+  $('heals').textContent=`回復［F］ 包帯${ME.band}・救急${ME.med}・Sパッチ${ME.cell}・Sキット${ME.bat}`;
 
-  const w=wpn(ME);$('ammo').innerHTML=ME.healT>0?(ME.healKind==='med'?'救急キット使用中…':'包帯を巻いている…'):w?`<em>${WEAP[w.id].name}</em>${w.mag}<small> / ${ME.ammo[WEAP[w.id].ammo]}</small>`:'素手'}
+  const w=wpn(ME);$('ammo').innerHTML=ME.healT>0?(ME.healKind==='med'?'救急キット使用中…':ME.healKind==='cell'?'シールドパッチを使っている…':ME.healKind==='bat'?'シールドキットを使っている…':'包帯を巻いている…'):w?`<em>${WEAP[w.id].name}</em>${w.mag}<small> / ${ME.ammo[WEAP[w.id].ammo]}</small>`:'素手'}
 const mc=$('map').getContext('2d');let mapBase=null;
 function drawMap(){const s=Math.min(240/W,176/H);
   if(!mapBase){mapBase=document.createElement('canvas');mapBase.width=240;mapBase.height=176;const b=mapBase.getContext('2d');b.fillStyle='#0b0d10';b.fillRect(0,0,240,176);
@@ -2059,6 +2134,7 @@ function startGame(){
   seedLoot();seedCoverLoot();initZone();if(NET.host)netSendInit(seed);
   showDrop()}
 function setupWorld(seed){
+  if(typeof SPEC!=='undefined'){SPEC.on=false;SPEC.a=null;const sb=$('specbar');if(sb)sb.hidden=true}
   ME=null;genMap(SIZE,seed);grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();DOORP=new Map();
   S={recap:[],t:0,over:false,cans:[],pings:[],hurt:0,hitMark:0,killMark:0,recoil:0,ads:false,moveAmt:0,flashT:0,vy:0,jumpY:0,useT:null,vault:null};
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];
@@ -2131,8 +2207,9 @@ function end(win){if(S.over)return;S.over=true;$('msg').style.opacity=0;msgT=0;$
     ${S.recap.length?`<ol class="recap">${S.recap.slice(-6).map(r=>`<li><span>${fmt(r.t)}</span>${r.txt}</li>`).join('')}</ol>`:''}
     <dl class="res"><div><dt>順位</dt><dd>${place} / ${n}</dd></div><div><dt>キル</dt><dd>${ME.kills}</dd></div><div><dt>与ダメージ</dt><dd>${Math.round(ME.dmgDone)}</dd></div><div><dt>生存時間</dt><dd>${fmt(S.t)}</dd></div></dl>
     ${!win&&ALL.some(a=>a.alive&&!a.me)?'<button class="btn ghost" id="spec">試合の続きを観戦する</button>':''}
-    <button class="btn" id="start">同じ人数でもう一度</button><button class="btn ghost" id="menu">人数を選び直す</button>`;
-    $('stage').classList.remove('playing');$('overlay').hidden=false;$('start').onclick=startGame;$('menu').onclick=()=>{$('card').innerHTML=START_HTML;bindStart()};
+    ${NET.on?(NET.host?'<p id="netwait" class="netdim"></p><button class="btn" id="start" disabled>全員でもう一度</button>':'<p id="netwait" class="netdim">ホストが次の試合を始めるのを待っている…</p><button class="btn" id="start" hidden>…</button>')+'<button class="btn ghost" id="menu">部屋を抜ける</button>'
+      :'<button class="btn" id="start">同じ人数でもう一度</button><button class="btn ghost" id="menu">人数を選び直す</button>'}`;
+    $('stage').classList.remove('playing');$('overlay').hidden=false;$('start').onclick=()=>{if(!NET.on||(NET.host&&NET.done))startGame()};$('menu').onclick=()=>{if(NET.on){netReset();return}$('card').innerHTML=START_HTML;bindStart()};
     if($('spec'))$('spec').onclick=()=>specStart(ME.lastHitBy)},win?400:1200)}
 // ---------- spectating after you are out: follow a player from behind, click / Space to switch ----------
 const SPEC={on:false,a:null,cx:0,cy:0,cz:0,done:false};
@@ -2149,7 +2226,7 @@ function specFrame(dt){const al=specAlive();if(!SPEC.a||!SPEC.a.alive){const k=S
   const L=Math.hypot(bx*dist,.9,bz*dist),r=rayHit(hx,hy,hz,bx*dist/L,.9/L,bz*dist/L,L,a,false);const k=r.solid||r.actor?Math.max(.4,(r.t-.3)/L):1;
   const tx=hx+bx*dist*k,ty=hy+.9*k,tz=hz+bz*dist*k;if(SPEC.cx===undefined){SPEC.cx=tx;SPEC.cy=ty;SPEC.cz=tz}const m=Math.min(1,dt*10);SPEC.cx+=(tx-SPEC.cx)*m;SPEC.cy+=(ty-SPEC.cy)*m;SPEC.cz+=(tz-SPEC.cz)*m;
   cam.position.set(SPEC.cx,SPEC.cy,SPEC.cz);cam.lookAt(hx,hy-.1,hz);ME.x=a.x;ME.z=a.z;
-  if(el&&!SPEC.done){const w=wpn(a);el.innerHTML=`観戦中：<b>${esc(a.name)}</b>　体力${Math.max(0,Math.round(a.hp))}${a.armorLv?'　ベストLv'+a.armorLv:''}${w?'　'+WEAP[w.id].name:''}　キル${a.kills||0}　残り${ALL.filter(x=>x.alive).length}人<span>クリック／Space：次の人　Esc：結果に戻る</span>`}}
+  if(el&&!SPEC.done){const w=wpn(a);el.innerHTML=`観戦中：<b>${esc(a.name)}</b>　体力${Math.max(0,Math.round(a.hp))}${a.armor>0?'　シールド'+Math.round(a.armor):''}${w?'　'+WEAP[w.id].name:''}　キル${a.kills||0}　残り${ALL.filter(x=>x.alive).length}人<span>クリック／Space：次の人　Esc：結果に戻る</span>`}}
 
 const AQ={t:0,sum:0,n:0,lv:0},PXB=[1.3e6,1.3e6,.9e6,.6e6];
 function resize(){const r=cvEl.getBoundingClientRect(),px=Math.max(1,r.width*r.height);R.setPixelRatio(Math.max(.5,Math.min(devicePixelRatio||1,1.5,Math.sqrt(PXB[AQ.lv]/px))));R.setSize(r.width,r.height,false);cam.aspect=r.width/Math.max(1,r.height);cam.updateProjectionMatrix()}
@@ -2166,11 +2243,13 @@ function autoQuality(dt){if(AQ.lv>=3||dt<=0)return;AQ.t+=dt;AQ.sum+=dt;AQ.n++;if
   if(AQ.lv===1){VEG.hiR=18;VEG.grassN=550}else if(AQ.lv===2){VEG.hiR=12;VEG.grassN=200}else{VEG.hiR=0;VEG.grassN=0}resize();VEG.cx=1e9}
 // climb onto / over low obstacles in front (car hoods and roofs, crates) with the jump key; open or broken windows are vaulted through
 function tryMantle(){const fx=-Math.sin(ME.yaw),fz=-Math.cos(ME.yaw);
-  for(const w of wins.values()){if(w.state==='closed')continue;const c=ctr(w);if(Math.hypot(c.x-ME.x,c.z-ME.z)<1.5&&((c.x-ME.x)*fx+(c.z-ME.z)*fz)>.3){myUse({type:'win',w});return true}}
+  for(const w of wins.values()){if(w.state==='closed'||!sameFloor(w.x,w.y))continue;const c=ctr(w);if(Math.hypot(c.x-ME.x,c.z-ME.z)<1.5&&((c.x-ME.x)*fx+(c.z-ME.z)*fz)>.3){myUse({type:'win',w});return true}}
   for(const d of[.5,.8,1.05]){const px=ME.x+fx*d,pz=ME.z+fz*d;FEET=ME.y;const bl=solidAt(px,pz);FEET=null;if(!bl)continue;
     const top=platformTop(px,pz,ME.y+1.7,.05);if(!(top>ME.y+.35))return false;
     for(const e of[.45,.75]){const tx=ME.x+fx*(d+e),tz=ME.z+fz*(d+e);FEET=top;const ok=free(tx,tz,ME.r*.9);FEET=null;
-      if(ok&&platformTop(tx,tz,top+.05,0)>=top-.05){S.mantle={fx:ME.x,fz:ME.z,fy:ME.y,tx,tz,ty:top,t:0};S.crouch=false;S.slide=null;step(.12);return true}}
+      if(!ok)continue;if(platformTop(tx,tz,top+.05,0)>=top-.05){S.mantle={fx:ME.x,fz:ME.z,fy:ME.y,tx,tz,ty:top,t:0};S.crouch=false;S.slide=null;step(.12);return true}
+      // vault: a waist-high railing or barricade with a drop behind it - go over the top and fall down the other side
+      if(top-ME.y<=1.35){S.mantle={fx:ME.x,fz:ME.z,fy:ME.y,tx,tz,ty:top+.05,t:0};S.crouch=false;S.slide=null;step(.12);return true}}
     return false}return false}
 function tick(dt){S.t+=dt;if(!NET.client)updateZone(dt);
   S.dT=(S.dT||0)-dt;if(S.dT<=0&&ME.alive){S.dT=.5;const tx=ME.x/T,tz=ME.z/T,d=DIST.find(d=>tx>=d.x0&&tx<d.x1&&tz>=d.y0&&tz<d.y1)||null;if(d!==S.dist){S.dist=d;if(d&&!S.drop)say('― '+DNAME[d.k]+' ―',2.4)}}
@@ -2219,9 +2298,9 @@ function tick(dt){S.t+=dt;if(!NET.client)updateZone(dt);
   if(tap.s1)swapTo(0);if(tap.s2)swapTo(1);tap.s1=tap.s2=false;
   if(tap.swap){tap.swap=false;swapTo(1-ME.cur)}
   if(tap.reload){tap.reload=false;startReload(ME)}
-  if(tap.band){tap.band=false;myHeal('band')}if(tap.med){tap.med=false;myHeal('med')}
+  if(tap.heal){tap.heal=false;myHeal('auto')}if(tap.healPick){const k=tap.healPick;tap.healPick=null;myHeal(k)}
   if(ME.alive)autoPickup();
-  if(ME.healT>0){if(btn.fire&&wpn(ME)){ME.healT=0;say('回復を中断した')}else{ME.healT-=dt;if(ME.healT<=0){if(ME.healKind==='med'){ME.med--;ME.hp=100}else{ME.band--;ME.hp=Math.min(75,ME.hp+25)}say('回復した');tone(600,'sine',.08,.3,900)}}}
+  if(ME.healT>0){if(btn.fire&&wpn(ME)){ME.healT=0;say('回復を中断した')}else{ME.healT-=dt;if(ME.healT<=0){const cap=ME.armorLv?VEST[ME.armorLv].cap:0;if(ME.healKind==='med'){ME.med--;ME.hp=100}else if(ME.healKind==='cell'){ME.cell--;ME.armor=Math.min(cap,ME.armor+25)}else if(ME.healKind==='bat'){ME.bat--;ME.armor=cap}else{ME.band--;ME.hp=Math.min(75,ME.hp+25)}say(ME.healKind==='cell'||ME.healKind==='bat'?'シールドを回復した':'回復した');tone(600,'sine',.08,.3,900)}}}
   const w=wpn(ME),trig=btn.fire||S.fireBuf>0;
   if(trig&&w&&ME.reloadT>0&&w.mag>0){ME.reloadT=0} // pulling the trigger with rounds left cancels the reload
   if(trig&&ME.healT<=0&&!S.vault&&S.stanceT<=0&&!S.meRun){const did=fire(ME);if(did){S.fireBuf=0;if(!w||!WEAP[w.id].auto)btn.fire=false}}
@@ -2288,8 +2367,8 @@ function bcast(m,except){for(const c of NET.conns)if(c!==except&&c.open)try{c.se
 function sendTo(c,m){if(c&&c.open)try{c.send(m)}catch(_){}}
 const ser=it=>{const o={n:it.nid,k:it.kind};for(const f of['id','r','optic','lv','hp','amt','noBot','y'])if(it[f]!==undefined&&it[f]!==null)o[f]=it[f];return o};
 const des=o=>{const it={nid:o.n,kind:o.k};for(const f of['id','r','optic','lv','hp','amt','noBot','y'])if(o[f]!==undefined)it[f]=o[f];return it};
-function inv(a){return{s:a.slots.map(s=>s?{id:s.id,r:s.r||0,optic:s.optic||null,mag:s.mag||0}:null),c:a.cur,am:{...a.ammo},b:a.band,m:a.med,al:a.armorLv,ar:Math.round(a.armor),hl:a.helmLv,hm:Math.round(a.helm)}}
-function applyInv(a,v){if(!v)return;a.slots=v.s.map(s=>s?{...s}:null);a.cur=v.c;a.ammo={...v.am};a.band=v.b;a.med=v.m;a.armorLv=v.al;a.armor=v.ar;a.helmLv=v.hl;a.helm=v.hm}
+function inv(a){return{s:a.slots.map(s=>s?{id:s.id,r:s.r||0,optic:s.optic||null,mag:s.mag||0}:null),c:a.cur,am:{...a.ammo},b:a.band,m:a.med,ce:a.cell||0,bt:a.bat||0,al:a.armorLv,ar:Math.round(a.armor),hl:a.helmLv,hm:Math.round(a.helm)}}
+function applyInv(a,v){if(!v)return;a.slots=v.s.map(s=>s?{...s}:null);a.cur=v.c;a.ammo={...v.am};a.band=v.b;a.med=v.m;a.cell=v.ce||0;a.bat=v.bt||0;a.armorLv=v.al;a.armor=v.ar;a.helmLv=v.hl;a.helm=v.hm}
 
 // ---------- lobby ----------
 function netInfo(html){const el=$('netinfo');if(el)el.innerHTML=html}
