@@ -1785,7 +1785,7 @@ function fire(a){const w=wpn(a);if(S.t<15){if(a.me&&!S.graceMsg){S.graceMsg=1;sa
         if(res){const g=agg.get(r.actor)||{d:0,ab:0,h:false,b:false,k:false};g.d+=res.dmg;g.ab+=res.abs;g.h=g.h||r.head;g.b=g.b||res.broke;g.k=g.k||res.killed;agg.set(r.actor,g)}}
       else if(r.solid)impact(_v.set(r.end.x,r.end.y,r.end.z))}
     if(hitAny){S.hitMark=.2;S.hitHead=head;let arm=false,brk=false;
-      for(const[t_,g]of agg){dmgNum(t_,g.d,g.h?'h':g.ab>g.d*.15?'a':'b');if(g.b){brk=true}arm=arm||g.ab>0}
+      for(const[t_,g]of agg){dmgNum(t_,g.d+g.ab,g.ab>.5?'a':g.h?'h':'b');if(g.b){brk=true}arm=arm||g.ab>0}
       S.hitArmor=arm;if(brk){sfx.brk();S.brkT=.5}else if(head)sfx.head();else if(arm)sfx.armor();else sfx.body()}
     if(w.mag===0&&a.ammo[W_.ammo]>0)setTimeout(()=>{if(wpn(a)===w&&w.mag===0)startReload(a)},250)}
   else botShoot(a,W_);
