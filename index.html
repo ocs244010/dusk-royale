@@ -179,7 +179,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
       </ul>
       <label class="sensrow">視点の感度 <input class="sens" type="range" min="0.3" max="2" step="0.05" aria-label="視点の感度"> <output class="sensv">1.00</output></label>
       <button class="btn" id="start">出撃する</button>
-      <h2>友達と対戦（オンライン・2〜4人）<span class="netdim" style="float:right;font-weight:400">版 44</span></h2>
+      <h2>友達と対戦（オンライン・2〜4人）<span class="netdim" style="float:right;font-weight:400">版 45</span></h2>
       <div class="net">
         <p class="netdim">1人が部屋を作り、ほかの人は部屋コードか招待URLで入る。全員が同じ試合に降り、足りない人数はCPUが入る。部屋を作った人の参加人数（基地の広さ）で遊ぶ。</p>
         <div class="netrow"><input id="netname" maxlength="10" placeholder="名前（10文字まで）" autocomplete="off"><button class="btn ghost sm" id="netcreate">部屋を作る</button></div>
@@ -2363,12 +2363,15 @@ function bindStart(){$('start').onclick=startGame;bindSens();bindSights();$$('.s
 // and reports it, so the feel stays local. Damage to a player is applied on that player's machine.
 const NET={noCpu:false,on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
   applying:false,noKill:false,fx:null,hold:{},sT:0,pT:0,invT:0,wsT:0,lastWS:'',byI:[],code:''};
-const NETPFX='dusk-sf-',NETVER='44';
+const NETPFX='dusk-sf-',NETVER='45';
 const r2=v=>Math.round(v*100)/100;
 function peerOpts(){const q=new URLSearchParams(location.search),ps=q.get('ps');if(!ps)return{debug:1};const[h,pt]=ps.split(':');return{host:h,port:+pt||9000,path:'/',secure:false,debug:1}}
-function netSend(m){if(NET.conn&&NET.conn.open)try{NET.conn.send(m)}catch(_){}}
-function bcast(m,except){for(const c of NET.conns)if(c!==except&&c.open)try{c.send(m)}catch(_){}}
-function sendTo(c,m){if(c&&c.open)try{c.send(m)}catch(_){}}
+function netSend(m){if(NET.conn&&NET.conn.open)try{rawSend(NET.conn,m)}catch(_){}}
+let PTID=0;const PTBUF=new Map();
+function rawSend(c,m){const j=JSON.stringify(m);if(j.length<=12000){c.send(m);return}const id=++PTID,n=Math.ceil(j.length/12000);for(let k=0;k<n;k++)c.send({t:'pt',id,k,n,d:j.slice(k*12000,(k+1)*12000)})}
+function unPart(c,m){if(m.t!=='pt')return m;let b=PTBUF.get(c);if(!b){b=new Map();PTBUF.set(c,b)}let a=b.get(m.id);if(!a){a=[];b.set(m.id,a)}a[m.k]=m.d;if(a.filter(x=>x!==undefined).length<m.n)return null;b.delete(m.id);return JSON.parse(a.join(''))}
+function bcast(m,except){for(const c of NET.conns)if(c!==except&&c.open)try{rawSend(c,m)}catch(_){}}
+function sendTo(c,m){if(c&&c.open)try{rawSend(c,m)}catch(_){}}
 const ser=it=>{const o={n:it.nid,k:it.kind};for(const f of['id','r','optic','lv','hp','amt','noBot','y'])if(it[f]!==undefined&&it[f]!==null)o[f]=it[f];return o};
 // items with their position (the start-of-match list needs it, not just new drops)
 const serAt=it=>{const q=ser(it);q.x=r2(it.x);q.z=r2(it.z);if(it.y!==undefined)q.y=r2(it.y);return q};
@@ -2401,13 +2404,13 @@ function netCreate(){NET.name=myName();NET.code=Array.from({length:5},()=>'ABCDE
   netInfo('<p class="netdim">部屋を作っている…</p>');const peer=new Peer(NETPFX+NET.code,peerOpts());NET.peer=peer;
   peer.on('open',()=>{Object.assign(NET,{on:true,host:true,client:false,conns:[],lobby:[{name:NET.name}],nid:0,done:false});netInfo(lobbyHtml());netLobbyUi()});
   peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();netCreate();return}netInfo(`<p class="netwarn">部屋を作れなかった（${esc(e.type||e)}）。少し待ってもう一度。</p>`)});
-  peer.on('connection',c=>{c.on('data',m=>hostRecv(c,m));c.on('close',()=>hostDrop(c));c.on('error',()=>hostDrop(c))})}
+  peer.on('connection',c=>{c.on('data',m=>{m=unPart(c,m);if(m)hostRecv(c,m)});c.on('close',()=>hostDrop(c));c.on('error',()=>hostDrop(c))})}
 function netJoin(code){if(!/^[A-Z0-9]{5}$/.test(code)){netInfo('<p class="netwarn">部屋コードは5文字。</p>');return}NET.name=myName();NET.code=code;
   netInfo('<p class="netdim">部屋につないでいる…</p>');const peer=new Peer(undefined,peerOpts());NET.peer=peer;
   peer.on('open',()=>{const c=peer.connect(NETPFX+code,{reliable:true,serialization:'json'});NET.conn=c;
     const to=setTimeout(()=>{if(!NET.on){netInfo('<p class="netwarn">部屋が見つからない。コードが合っているか、ホストが部屋を開いたままか確認してください。</p>');try{peer.destroy()}catch(_){}}},12000);
     c.on('open',()=>{clearTimeout(to);Object.assign(NET,{on:true,client:true,host:false});c.send({t:'hello',name:NET.name,v:NETVER})});
-    c.on('data',clientRecv);c.on('close',()=>{if(NET.client)netReset('ホストとの接続が切れた。')})});
+    c.on('data',m=>{m=unPart(c,m);if(m)clientRecv(m)});c.on('close',()=>{if(NET.client)netReset('ホストとの接続が切れた。')})});
   peer.on('error',e=>{netInfo(`<p class="netwarn">${e.type==='peer-unavailable'?'部屋が見つからない。コードを確かめてください。':'つなげなかった（'+esc(e.type||e)+'）'}</p>`)})}
 function netLobbyCast(){if(NET.host)bcast({t:'lobby',l:NET.lobby.map(p=>p.name),code:NET.code,size:SIZE,nc:NET.noCpu})}
 function hostDrop(c){const i=NET.conns.indexOf(c);if(i<0)return;NET.conns.splice(i,1);NET.lobby=NET.lobby.filter(p=>p.conn!==c);
