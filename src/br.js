@@ -915,7 +915,7 @@ const stanceOf=a=>a.me?(S.prone?'prone':(S.crouch||S.slide)?'crouch':'stand'):(a
 // ---------- player ----------
 // doors, windows and lockers can only be used from their own floor (not from the roof terrace above)
 function sameFloor(tx,ty){const h=HOUSES.find(h=>tx>=h.x&&tx<h.x+h.w&&ty>=h.y&&ty<h.y+h.h),f=h?h.pad:groundY((tx+.5)*T,(ty+.5)*T);return Math.abs((ME.y??groundY(ME.x,ME.z))-f)<1.4}
-function reachThrough(x,y,z){const ey=(ME.y??groundY(ME.x,ME.z))+1.2,dx=x-ME.x,dy=y-ey,dz=z-ME.z,d=Math.hypot(dx,dy,dz)||1,r=rayHit(ME.x,ey,ME.z,dx/d,dy/d,dz/d,d,ME,false);return !(r.solid&&r.t<d-.35)}
+function reachThrough(x,y,z){if(!isFinite(x)||!isFinite(y)||!isFinite(z)||!isFinite(ME.x)||!isFinite(ME.z))return true;const ey=(isFinite(ME.y)?ME.y:groundY(ME.x,ME.z))+1.2,dx=x-ME.x,dy=y-ey,dz=z-ME.z,d=Math.hypot(dx,dy,dz)||1,r=rayHit(ME.x,ey,ME.z,dx/d,dy/d,dz/d,d,ME,false);return !(r.solid&&r.t<d-.35)}
 function myPickCandidate(){let best=null,bd=1e9;const fx=-Math.sin(ME.yaw),fz=-Math.cos(ME.yaw);
   for(const it of ITEMS){if(it.kind!=='weapon'&&!((it.kind==='armor'&&ME.armorLv>0&&ME.armor>0)||(it.kind==='helmet'&&ME.helmLv>0&&ME.helm>0)))continue;const dx=it.x-ME.x,dz=it.z-ME.z,d=Math.hypot(dx,dz);if(d>1.8||!reachY(it))continue;const sc=d-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd&&reachThrough(it.x,itY(it)+.15,it.z)){bd=sc;best={type:'item',it}}}
   for(const dr of drawers.values()){if(dr.opened||!sameFloor(dr.x,dr.y))continue;const dx=dr.px-ME.x,dz=dr.pz-ME.z,d=Math.hypot(dx,dz);if(d>1.7)continue;const sc=d+.3-(dx*fx+dz*fz)/Math.max(d,.01)*.8;if(sc<bd&&reachThrough(dr.px+dr.nx*.35,dr.pad+.7,dr.pz+dr.nz*.35)){bd=sc;best={type:'drawer',dr}}}

@@ -10,6 +10,8 @@ function netSend(m){if(NET.conn&&NET.conn.open)try{NET.conn.send(m)}catch(_){}}
 function bcast(m,except){for(const c of NET.conns)if(c!==except&&c.open)try{c.send(m)}catch(_){}}
 function sendTo(c,m){if(c&&c.open)try{c.send(m)}catch(_){}}
 const ser=it=>{const o={n:it.nid,k:it.kind};for(const f of['id','r','optic','lv','hp','amt','noBot','y'])if(it[f]!==undefined&&it[f]!==null)o[f]=it[f];return o};
+// items with their position (the start-of-match list needs it, not just new drops)
+const serAt=it=>{const q=ser(it);q.x=r2(it.x);q.z=r2(it.z);if(it.y!==undefined)q.y=r2(it.y);return q};
 const des=o=>{const it={nid:o.n,kind:o.k};for(const f of['id','r','optic','lv','hp','amt','noBot','y'])if(o[f]!==undefined)it[f]=o[f];return it};
 function inv(a){return{s:a.slots.map(s=>s?{id:s.id,r:s.r||0,optic:s.optic||null,mag:s.mag||0}:null),c:a.cur,am:{...a.ammo},b:a.band,m:a.med,ce:a.cell||0,bt:a.bat||0,al:a.armorLv,ar:Math.round(a.armor),hl:a.helmLv,hm:Math.round(a.helm)}}
 function applyInv(a,v){if(!v)return;a.slots=v.s.map(s=>s?{...s}:null);a.cur=v.c;a.ammo={...v.am};a.band=v.b;a.med=v.m;a.cell=v.ce||0;a.bat=v.bt||0;a.armorLv=v.al;a.armor=v.ar;a.helmLv=v.hl;a.helm=v.hm}
@@ -71,7 +73,7 @@ function hostRecv(c,m){
   if(m.t==='use'){if(m.k==='d'){const dd=doors.get(m.key);if(dd)dd.open=!!m.v}else if(m.k==='w'){const w=wins.get(m.key);if(w&&w.state!==m.v)setWin(w,m.v)}else if(m.k==='r'){const dr=drawers.get(m.key);if(dr)openDrawer(dr)}}}
 function worldState(){let d='',w='',r='';for(const x of doors.values())d+=(x.open?1:0)+(x.broken?2:0);for(const x of wins.values())w+=x.state[0];for(const x of drawers.values())r+=x.opened?1:0;return{d,w,r}}
 function netSendInit(seed){if(NET.noCpu&&NET.lobby.length<2)NET.noCpu=false;NET.done=false;NET.live=true;for(const p of NET.lobby){p.pick=null;p.ready=false}const ws=worldState();NET.lastWS=JSON.stringify(ws);
-  bcast({t:'init',seed,size:SIZE,ws,items:ITEMS.map(ser),z:Z,lobby:NET.lobby.map(p=>p.name)})}
+  bcast({t:'init',seed,size:SIZE,ws,items:ITEMS.map(serAt),z:Z,lobby:NET.lobby.map(p=>p.name)})}
 function dropCheck(){if(!NET.host||!DROP)return;if(DROP.hostReady&&NET.lobby.slice(1).every(p=>p.ready))launch(DROP.pick)}
 function dropDone(pick,timeout){if(!DROP)return;if(!NET.on){launch(pick);return}
   if(NET.host){DROP.pick=pick;DROP.hostReady=true;if(timeout){launch(pick);return}dropCheck();if(DROP){$('dropinfo').textContent='ほかのプレイヤーが降下地点を選ぶのを待っている…';$('dropgo').disabled=$('droprand').disabled=true}return}
