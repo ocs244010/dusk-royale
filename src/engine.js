@@ -699,9 +699,9 @@ function buildWorld(){TERR=[];
        const nS=11,rise=(tp-pd)/nS,run=.5,stripLo=tr.a0*T,stripHi=(tr.a0+tr.len)*T,dir=tr.flip?-1:1,aStart=tr.flip?stripHi-.25:stripLo+.25;
        const c0=tr.r*T,c1=c0+T,cMid=c0+T/2,inward=(tr.sd==='s'||tr.sd==='e')?-1:1,wallC=(tr.sd==='s'?(h.y+h.h-.5):tr.sd==='n'?(h.y+.5):tr.sd==='e'?(h.x+h.w-.5):(h.x+.5))*T;
        const put=(a1,a2,p1,p2,y0,y1,mat,col)=>{const ax0=Math.min(a1,a2),ax1=Math.max(a1,a2),px0=Math.min(p1,p2),px1=Math.max(p1,p2);const[X0,X1,Z0,Z1]=tr.alongX?[ax0,ax1,px0,px1]:[px0,px1,ax0,ax1];
-         B.add(BOX(X1-X0,y1-y0,Z1-Z0),mat,MX((X0+X1)/2,(y0+y1)/2,(Z0+Z1)/2));if(col)addCol({x0:X0,x1:X1,z0:Z0,z1:Z1,top:y1})};
+         B.add(BOX(X1-X0,y1-y0,Z1-Z0),mat,MX((X0+X1)/2,(y0+y1)/2,(Z0+Z1)/2));if(col)addCol(col==='slab'?{x0:X0,x1:X1,z0:Z0,z1:Z1,top:y1,bot:y0}:{x0:X0,x1:X1,z0:Z0,z1:Z1,top:y1})};
        for(let k=0;k<nS;k++){const a1=aStart+dir*k*run,a2=a1+dir*run,y1=pd+rise*(k+1);put(a1,a2,c0+.12,c1-.12,pd-.3,y1,k%2?HULLD:HULL,true);const eo=inward>0?c0+.14:c1-.14;B.add(BOX(tr.alongX?run:.04,.025,tr.alongX?.04:run),GLOW,MX(tr.alongX?(a1+a2)/2:eo,y1+.01,tr.alongX?eo:(a1+a2)/2))}
-       const l1=aStart+dir*nS*run,l2=l1+dir*1.8;put(l1,l2,wallC,inward>0?c0+.12:c1-.12,tp-.22,tp,HULLD,true);
+       const l1=aStart+dir*nS*run,l2=l1+dir*1.8;put(l1,l2,wallC,inward>0?c0+.12:c1-.12,tp-.22,tp,HULLD,'slab');
        // parapet round the roof, open where the landing meets it
        const R0={x0:cx-rw/2,x1:cx+rw/2,z0:cz-rd/2,z1:cz+rd/2},gapLo=Math.min(l1,l2)-.15,gapHi=Math.max(l1,l2)+.15;
        const wallP=(X0,X1,Z0,Z1)=>{if(X1-X0<.05||Z1-Z0<.05)return;B.add(BOX(X1-X0,PT,Z1-Z0),HULL,MX((X0+X1)/2,tp+PT/2,(Z0+Z1)/2));B.add(BOX(X1-X0+.02,.04,Z1-Z0+.02),GLOW,MX((X0+X1)/2,tp+PT+.02,(Z0+Z1)/2));addCol({x0:X0,x1:X1,z0:Z0,z1:Z1,top:tp+PT,bot:tp-.05})};

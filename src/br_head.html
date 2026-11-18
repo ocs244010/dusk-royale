@@ -45,6 +45,8 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
 #feed{display:flex;flex-direction:column;gap:3px;align-items:flex-end;font-size:12px}
 #feed div{background:rgba(8,14,24,.7);padding:2px 8px;border-radius:3px;white-space:nowrap}#feed b{color:var(--ember);font-weight:800}#feed span{color:var(--dim);margin-left:6px;font-size:10px}
 #msg{position:absolute;left:50%;top:30%;transform:translateX(-50%);background:rgba(8,14,24,.8);padding:6px 14px;border-radius:4px;font-size:14px;white-space:nowrap;pointer-events:none;transition:opacity .3s}
+#grace{position:absolute;left:50%;top:30%;transform:translateX(-50%);background:rgba(8,14,24,.8);padding:6px 14px;border-radius:4px;font-size:14px;white-space:nowrap;pointer-events:none}
+#stage.grace #msg{top:calc(30% + 38px)}
 #hint{position:absolute;left:50%;top:60%;transform:translateX(-50%);color:var(--ember);font-size:14px;font-weight:800;pointer-events:none;text-shadow:0 1px 3px #000;white-space:nowrap}
 .bottom{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;pointer-events:none;
   padding-bottom:max(12px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
@@ -139,7 +141,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
   </div>
   <div id="pause" hidden><div class="card"><h1><small>PAUSED</small>一時停止</h1>
     <label class="sensrow">視点の感度 <input class="sens" type="range" min="0.3" max="2" step="0.05" aria-label="視点の感度"> <output class="sensv">1.00</output></label>
-    <button class="btn" id="resume">再開する</button></div></div>
+    <button class="btn" id="resume">再開する</button><button class="btn ghost" id="gohome" style="margin-top:34px">ホームに戻る</button></div></div>
   <div id="overlay">
     <div class="card" id="card">
       <h1><small>DUSK ROYALE · FRONTIER (PROTOTYPE)</small>ダスクロワイヤル 未来版</h1>
@@ -168,7 +170,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
       </ul>
       <label class="sensrow">視点の感度 <input class="sens" type="range" min="0.3" max="2" step="0.05" aria-label="視点の感度"> <output class="sensv">1.00</output></label>
       <button class="btn" id="start">出撃する</button>
-      <h2>友達と対戦（オンライン・2〜4人）<span class="netdim" style="float:right;font-weight:400">版 45</span></h2>
+      <h2>友達と対戦（オンライン・2〜4人）<span class="netdim" style="float:right;font-weight:400">版 47</span></h2>
       <div class="net">
         <p class="netdim">1人が部屋を作り、ほかの人は部屋コードか招待URLで入る。全員が同じ試合に降り、足りない人数はCPUが入る。部屋を作った人の参加人数（基地の広さ）で遊ぶ。</p>
         <div class="netrow"><input id="netname" maxlength="10" placeholder="名前（10文字まで）" autocomplete="off"><button class="btn ghost sm" id="netcreate">部屋を作る</button></div>

@@ -56,6 +56,8 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
 #feed{display:flex;flex-direction:column;gap:3px;align-items:flex-end;font-size:12px}
 #feed div{background:rgba(8,14,24,.7);padding:2px 8px;border-radius:3px;white-space:nowrap}#feed b{color:var(--ember);font-weight:800}#feed span{color:var(--dim);margin-left:6px;font-size:10px}
 #msg{position:absolute;left:50%;top:30%;transform:translateX(-50%);background:rgba(8,14,24,.8);padding:6px 14px;border-radius:4px;font-size:14px;white-space:nowrap;pointer-events:none;transition:opacity .3s}
+#grace{position:absolute;left:50%;top:30%;transform:translateX(-50%);background:rgba(8,14,24,.8);padding:6px 14px;border-radius:4px;font-size:14px;white-space:nowrap;pointer-events:none}
+#stage.grace #msg{top:calc(30% + 38px)}
 #hint{position:absolute;left:50%;top:60%;transform:translateX(-50%);color:var(--ember);font-size:14px;font-weight:800;pointer-events:none;text-shadow:0 1px 3px #000;white-space:nowrap}
 .bottom{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;pointer-events:none;
   padding-bottom:max(12px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
@@ -150,7 +152,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
   </div>
   <div id="pause" hidden><div class="card"><h1><small>PAUSED</small>一時停止</h1>
     <label class="sensrow">視点の感度 <input class="sens" type="range" min="0.3" max="2" step="0.05" aria-label="視点の感度"> <output class="sensv">1.00</output></label>
-    <button class="btn" id="resume">再開する</button></div></div>
+    <button class="btn" id="resume">再開する</button><button class="btn ghost" id="gohome" style="margin-top:34px">ホームに戻る</button></div></div>
   <div id="overlay">
     <div class="card" id="card">
       <h1><small>DUSK ROYALE · FRONTIER (PROTOTYPE)</small>ダスクロワイヤル 未来版</h1>
@@ -179,7 +181,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--f-ui);overflow:h
       </ul>
       <label class="sensrow">視点の感度 <input class="sens" type="range" min="0.3" max="2" step="0.05" aria-label="視点の感度"> <output class="sensv">1.00</output></label>
       <button class="btn" id="start">出撃する</button>
-      <h2>友達と対戦（オンライン・2〜4人）<span class="netdim" style="float:right;font-weight:400">版 45</span></h2>
+      <h2>友達と対戦（オンライン・2〜4人）<span class="netdim" style="float:right;font-weight:400">版 47</span></h2>
       <div class="net">
         <p class="netdim">1人が部屋を作り、ほかの人は部屋コードか招待URLで入る。全員が同じ試合に降り、足りない人数はCPUが入る。部屋を作った人の参加人数（基地の広さ）で遊ぶ。</p>
         <div class="netrow"><input id="netname" maxlength="10" placeholder="名前（10文字まで）" autocomplete="off"><button class="btn ghost sm" id="netcreate">部屋を作る</button></div>
@@ -903,9 +905,9 @@ function buildWorld(){TERR=[];
        const nS=11,rise=(tp-pd)/nS,run=.5,stripLo=tr.a0*T,stripHi=(tr.a0+tr.len)*T,dir=tr.flip?-1:1,aStart=tr.flip?stripHi-.25:stripLo+.25;
        const c0=tr.r*T,c1=c0+T,cMid=c0+T/2,inward=(tr.sd==='s'||tr.sd==='e')?-1:1,wallC=(tr.sd==='s'?(h.y+h.h-.5):tr.sd==='n'?(h.y+.5):tr.sd==='e'?(h.x+h.w-.5):(h.x+.5))*T;
        const put=(a1,a2,p1,p2,y0,y1,mat,col)=>{const ax0=Math.min(a1,a2),ax1=Math.max(a1,a2),px0=Math.min(p1,p2),px1=Math.max(p1,p2);const[X0,X1,Z0,Z1]=tr.alongX?[ax0,ax1,px0,px1]:[px0,px1,ax0,ax1];
-         B.add(BOX(X1-X0,y1-y0,Z1-Z0),mat,MX((X0+X1)/2,(y0+y1)/2,(Z0+Z1)/2));if(col)addCol({x0:X0,x1:X1,z0:Z0,z1:Z1,top:y1})};
+         B.add(BOX(X1-X0,y1-y0,Z1-Z0),mat,MX((X0+X1)/2,(y0+y1)/2,(Z0+Z1)/2));if(col)addCol(col==='slab'?{x0:X0,x1:X1,z0:Z0,z1:Z1,top:y1,bot:y0}:{x0:X0,x1:X1,z0:Z0,z1:Z1,top:y1})};
        for(let k=0;k<nS;k++){const a1=aStart+dir*k*run,a2=a1+dir*run,y1=pd+rise*(k+1);put(a1,a2,c0+.12,c1-.12,pd-.3,y1,k%2?HULLD:HULL,true);const eo=inward>0?c0+.14:c1-.14;B.add(BOX(tr.alongX?run:.04,.025,tr.alongX?.04:run),GLOW,MX(tr.alongX?(a1+a2)/2:eo,y1+.01,tr.alongX?eo:(a1+a2)/2))}
-       const l1=aStart+dir*nS*run,l2=l1+dir*1.8;put(l1,l2,wallC,inward>0?c0+.12:c1-.12,tp-.22,tp,HULLD,true);
+       const l1=aStart+dir*nS*run,l2=l1+dir*1.8;put(l1,l2,wallC,inward>0?c0+.12:c1-.12,tp-.22,tp,HULLD,'slab');
        // parapet round the roof, open where the landing meets it
        const R0={x0:cx-rw/2,x1:cx+rw/2,z0:cz-rd/2,z1:cz+rd/2},gapLo=Math.min(l1,l2)-.15,gapHi=Math.max(l1,l2)+.15;
        const wallP=(X0,X1,Z0,Z1)=>{if(X1-X0<.05||Z1-Z0<.05)return;B.add(BOX(X1-X0,PT,Z1-Z0),HULL,MX((X0+X1)/2,tp+PT/2,(Z0+Z1)/2));B.add(BOX(X1-X0+.02,.04,Z1-Z0+.02),GLOW,MX((X0+X1)/2,tp+PT+.02,(Z0+Z1)/2));addCol({x0:X0,x1:X1,z0:Z0,z1:Z1,top:tp+PT,bot:tp-.05})};
@@ -1087,17 +1089,19 @@ function buildWorld(){TERR=[];
 // ======================= DUSK ROYALE: battle royale on the generated village =======================
 const WEAP={
   // hip: hip-fire spread multiplier, mv: extra spread while moving, ads/draw: seconds to aim/draw, pat: recoil pattern phase, botAcc: bot hit-chance multiplier
-  pistol:{kick:.014,bl:.004,hip:1.4,mv:.8,ads:.14,draw:.3,pat:0,botAcc:1.3,name:'ハンドガン',tier:1,dmg:19,iv:.2,mag:12,ammo:'light',spread:.012,range:55,fall:[18,40,.6],auto:false,reload:1.2,col:0x2a2c30,len:.26,snd:[1400,.18]},
-  smg:{kick:.011,bl:.004,hip:1.3,mv:.5,ads:.16,draw:.35,pat:1.7,botAcc:.85,name:'サブマシンガン',tier:2,dmg:10,iv:.075,mag:30,ammo:'light',spread:.026,range:40,fall:[15,32,.6],auto:true,reload:1.8,col:0x3a3f46,len:.42,snd:[1700,.12]},
+  pistol:{kick:.014,bl:.004,hip:1.4,mv:.8,ads:.14,draw:.3,pat:0,botAcc:1.3,name:'ハンドガン',tier:1,dmg:18,iv:.2,mag:10,ammo:'light',spread:.012,range:45,fall:[12,30,.5],auto:false,reload:1.2,col:0x2a2c30,len:.26,snd:[1400,.18]},
+  smg:{kick:.011,bl:.004,hip:1.3,mv:.5,ads:.16,draw:.35,pat:1.7,botAcc:.85,name:'サブマシンガン',tier:2,dmg:10,iv:.075,mag:25,ammo:'light',spread:.026,range:35,fall:[10,25,.5],auto:true,reload:1.8,col:0x3a3f46,len:.42,snd:[1700,.12]},
   shotgun:{kick:.055,bl:0,hip:1,mv:.3,ads:.2,draw:.45,pat:0,botAcc:1,name:'ショットガン',tier:2,dmg:12,pellets:9,iv:.8,mag:5,ammo:'shell',spread:.055,range:26,fall:[8,24,.3],auto:false,reload:.52,perShell:true,open:.3,col:0x5a3a24,len:.62,snd:[700,.32]},
-  rifle:{kick:.014,bl:.005,hip:1.9,mv:1.4,ads:.22,draw:.45,pat:4.1,botAcc:1,name:'アサルトライフル',tier:2,dmg:16,iv:.13,mag:30,ammo:'medium',spread:.018,range:80,fall:[45,75,.8],auto:true,reload:2.2,col:0x4a4f38,len:.66,snd:[1100,.2]},
+  rifle:{kick:.014,bl:.005,hip:1.9,mv:1.4,ads:.22,draw:.45,pat:4.1,botAcc:1,name:'アサルトライフル',tier:2,dmg:14,iv:.13,mag:25,ammo:'medium',spread:.018,range:80,fall:[30,60,.65],auto:true,reload:2.2,col:0x4a4f38,len:.66,snd:[1100,.2]},
   sniper:{kick:.07,bl:0,hip:1,mv:2,ads:.3,draw:.55,pat:0,botAcc:1,name:'ボルトアクション',tier:2,dmg:80,iv:1.2,mag:1,fixedMag:true,ammo:'heavy',spread:.002,range:160,fall:[999,999,1],auto:false,reload:1.7,col:0x3a2e22,len:.85,snd:[800,.36],scope:true}};
+// the one-of-a-kind bow: endless arrows that fly through every wall, 1 s to draw, enemies glow through walls while it is held
+WEAP.bow={kick:0,bl:0,hip:1,mv:.5,ads:.25,draw:.5,pat:0,botAcc:1,name:'ファントムボウ',tier:4,dmg:50,iv:.6,mag:1,inf:true,ammo:'none',spread:.003,range:220,fall:[999,999,1],auto:false,reload:0,col:0x2a1a22,len:.8,snd:[500,.2]};
 for(const k in WEAP)WEAP[k].id=k;
 // damage multiplier by distance: full until f[0] m, then linear down to f[2] at f[1] m
 function falloff(W_,d){const f=W_.fall;if(d<=f[0])return 1;if(d>=f[1])return f[2];return 1-(1-f[2])*(d-f[0])/(f[1]-f[0])}
 // optics are loot: pick one up to mount it on a gun that takes it (iron sights otherwise; the bolt-action has a built-in 4x)
 const OPTICS={dot:{n:'1倍ホロサイト',s:'ホロ',fov:55,rk:0},x2:{n:'2倍スコープ',s:'2倍',fov:34,rk:0},x3:{n:'3倍スコープ',s:'3倍',fov:26,rk:1},x4:{n:'4倍スコープ',s:'4倍',fov:20,rk:1},x8:{n:'8倍スコープ',s:'8倍',fov:11,rk:2}};
-const OPTFIT={pistol:['dot'],smg:['dot','x2'],shotgun:['dot'],rifle:['dot','x2','x3','x4'],sniper:['x8']},BASESIGHT={sniper:'x4',pistol:'dot',smg:'dot',shotgun:'dot',rifle:'dot'};
+const OPTFIT={bow:[],pistol:['dot'],smg:['dot','x2'],shotgun:['dot'],rifle:['dot','x2','x3','x4'],sniper:['x8']},BASESIGHT={bow:'x2',sniper:'x4',pistol:'dot',smg:'dot',shotgun:'dot',rifle:'dot'};
 const sightW=w=>w?(w.optic||BASESIGHT[w.id]||'iron'):'iron',scopedW=w=>!!w&&/^x/.test(sightW(w))&&sightW(w)!=='x2'&&sightW(w)!=='x3',adsFovW=w=>OPTICS[sightW(w)]?OPTICS[sightW(w)].fov:58;
 const fitsOptic=(w,o)=>!!w&&OPTFIT[w.id].includes(o);
 // the player's sights are chosen on the start screen and fitted to every gun of that type they pick up
@@ -1105,9 +1109,9 @@ const SIGHTCH={pistol:['dot'],smg:['dot','x2'],shotgun:['dot'],rifle:['dot','x2'
 const SIGHTLBL={iron:'アイアン',dot:'ホロ',x2:'2倍',x3:'3倍',x4:'4倍',x8:'8倍'};
 let SIGHT={pistol:'dot',smg:'dot',shotgun:'dot',rifle:'dot',sniper:'x4'};try{const v=JSON.parse(localStorage.getItem('dr_sight2')||'{}');for(const k in SIGHTCH)if(SIGHTCH[k].includes(v[k]))SIGHT[k]=v[k]}catch(_){}
 const myOptic=id=>{const c=SIGHT[id];return c==='iron'||c===BASESIGHT[id]?null:c};
-const HEADX={pistol:1.8,smg:1.5,shotgun:1.4,rifle:1.7,sniper:2.5};
+const HEADX={bow:4,pistol:1.8,smg:1.5,shotgun:1.4,rifle:1.7,sniper:2.5};
 // rarity: higher tiers have less recoil and a faster reload; magazine size is the same at every rarity (damage stays the same so fights stay readable)
-const RAR=[{n:'ノーマル',c:'#d8d4cc',h:0xd8d4cc},{n:'レア',c:'#4aa0ff',h:0x4aa0ff},{n:'エピック',c:'#b47cff',h:0xb47cff}];
+const RAR=[{n:'ノーマル',c:'#d8d4cc',h:0xd8d4cc},{n:'レア',c:'#4aa0ff',h:0x4aa0ff},{n:'エピック',c:'#b47cff',h:0xb47cff},{n:'レジェンド',c:'#ff4a5a',h:0xff3a4a}];
 const VEST=[null,{cap:25,abs:1},{cap:50,abs:1},{cap:75,abs:1}],HELM=[null,{cap:30,abs:.3},{cap:50,abs:.4},{cap:70,abs:.5}];
 const wMag=w=>WEAP[w.id].mag,wKick=w=>WEAP[w.id].kick*(1-.15*(w.r||0)),wReload=w=>WEAP[w.id].reload*(1-.1*(w.r||0));
 const wScore=w=>w?WEAP[w.id].tier*3+(w.r||0)+(w.id==='pistol'?0:1):-1;
@@ -1151,6 +1155,9 @@ const GM={steel:SM({color:0x4a5464,map:GTX.metal,metalness:.85,roughness:.32}),s
   band:[null,SM({color:0x2f6fc0,metalness:.55,roughness:.35,emissive:0x0a1a33}),SM({color:0x7a4ac0,metalness:.55,roughness:.35,emissive:0x1a0a33})],
   glove:SM({color:0x2c2824,metalness:0,roughness:.85,envMapIntensity:.3,map:GTX.cloth}),sleeve:SM({color:0x4a5040,metalness:0,roughness:.95,envMapIntensity:.25,map:GTX.cloth}),
   cuff:SM({color:0x1e1e1c,metalness:0,roughness:.8,envMapIntensity:.3})};
+const BOWRET=new THREE.MeshBasicMaterial({map:(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.strokeStyle=x.fillStyle='#ff3a4a';x.shadowColor='#ff1a2a';x.shadowBlur=6;
+    x.lineWidth=3;x.beginPath();x.arc(64,64,30,0,7);x.stroke();for(const[a,b,cc,d]of[[64,22,64,30],[64,98,64,106],[22,64,30,64],[98,64,106,64]]){x.beginPath();x.moveTo(a,b);x.lineTo(cc,d);x.stroke()}
+    x.beginPath();x.arc(64,64,3.5,0,7);x.fill();const t=new THREE.CanvasTexture(c);t.minFilter=THREE.LinearFilter;return t})(),transparent:true,depthWrite:false,side:THREE.DoubleSide});
 // side-profile extrusion: points are [forward m, up m]; forward maps to -z, width is centred on x
 function sideGeo(pts,w,bev=0,holes){const s=new THREE.Shape();s.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)s.lineTo(pts[i][0],pts[i][1]);
   if(holes)for(const h of holes){const p=new THREE.Path();p.moveTo(h[0][0],h[0][1]);for(let i=1;i<h.length;i++)p.lineTo(h[i][0],h[i][1]);s.holes.push(p)}
@@ -1248,6 +1255,26 @@ function gunModel(id,lod,rar,sight){const g=new THREE.Group(),parts={},P={};sigh
     band(BOX(.048,.012,.012),0,.038,-.2);
     P.grip=V(0,-.044,.006);P.gripRot=-.25;P.support=V(0,.006,-.3);P.supRot='under';P.sight=sight==='iron'?V(0,.097,.09):ry_?V(0,ry_,.15):V(0,hy_,0);P.eye=sight==='iron'?.13:ry_?.07:.24;P.muzzle=V(0,.038,-.62);P.port=V(0,-.2,-.06);
     P.hip=V(.14,-.15,-.36);P.kick=[.02,.04];P.len=.9}
+  else if(id==='bow'){
+    const BM=SM({color:0x1e1a24,map:GTX.metal,metalness:.7,roughness:.32}),GL=new THREE.MeshBasicMaterial({color:0xff3a50}),L=.3,zc=y=>-.3+.11*(y/L)**2;
+    for(const sd of[-1,1]){const pts=[];for(let i=0;i<=8;i++){const y=sd*(.06+(L-.06)*i/8);pts.push(V(0,y,zc(y)))}
+      add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),det?16:8,.012,det?7:5),BM);
+      if(det)add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>V(0,p.y,p.z-.011))),16,.0035,4),GL);
+      add(new THREE.SphereGeometry(.016,8,6),GL,0,sd*L,zc(sd*L))}
+    add(BOX(.032,.17,.044),BM,0,0,-.3);add(BOX(.036,.075,.05),GM.grip,0,-.01,-.3);add(BOX(.006,.022,.034),GL,.02,.045,-.3);add(BOX(.006,.022,.034),GL,-.02,-.06,-.3);
+    // side sight: a short arm off the left of the riser holding a ring housing with a red ring reticle
+    // (in first person it only shows while aiming)
+    const bs=parts.bsight=grp();add(BOX(.05,.014,.03),BM,-.03,.05,-.3,0,0,0,bs);add(BOX(.012,.05,.03),BM,-.052,.03,-.3,0,0,0,bs);
+    add(new THREE.TorusGeometry(.026,.0045,8,24),BM,-.055,.075,-.3,0,0,0,bs);add(new THREE.TorusGeometry(.0285,.0012,4,24),GL,-.055,.075,-.3,0,0,0,bs);
+    if(det){add(new THREE.CircleGeometry(.024,20),GM.holoGlass,-.055,.075,-.3,0,0,0,bs);const rt=add(new THREE.PlaneGeometry(.04,.04),BOWRET,-.055,.075,-.299,0,0,0,bs);rt.renderOrder=2}
+    const sgeo=new THREE.CylinderGeometry(1,1,1,4),s1=new THREE.Mesh(sgeo,GL),s2=new THREE.Mesh(sgeo,GL);g.add(s1,s2);
+    const nk=parts.nock=grp(0,0,zc(L)),ar=parts.arrow=grp(0,0,0,nk);
+    add(cylZ(.004,.004,.6,6),GM.steelDark,0,0,-.3,0,0,0,ar);add(new THREE.ConeGeometry(.011,.05,6).rotateX(-Math.PI/2),GL,0,0,-.62,0,0,0,ar);
+    for(let k=0;k<3;k++)add(BOX(.002,.02,.05),GL,0,0,-.035,0,0,k*2.094,ar);
+    const tA=V(0,L,zc(L)),tB=V(0,-L,zc(L));
+    parts.drawTo=k=>{nk.position.z=zc(L)+k*.28;seg(s1,tA,nk.position,.0022);seg(s2,tB,nk.position,.0022)};parts.drawTo(0);
+    P.grip=V(0,-.03,zc(L)+.06);P.gripRot=0;P.support=V(0,-.012,-.3);P.supRot='vert';P.sight=V(-.055,.075,-.3);P.eye=.27;P.muzzle=V(0,0,-.36);P.port=V(0,-.1,-.1);
+    P.hip=V(.035,-.07,-.34);P.kick=[.03,.05];P.len=.9}
   else if(id==='sniper'){
     add(sideGeo([[.42,.02],[.42,-.02],[.12,-.032],[.06,-.05],[.0,-.055],[-.028,-.105],[-.062,-.105],[-.05,-.045],[-.1,-.032],[-.36,-.055],[-.4,-.055],[-.4,.042],[-.36,.042],[-.1,.034],[.05,.022]],.045,.004),GM.wood);
     add(BOX(.047,.1,.02),GM.cuff,0,-.006,.407);
@@ -1288,7 +1315,7 @@ VM.gripHand=makeHand('grip');VM.supHand=makeHand('support');
 const segGeo=new THREE.CylinderGeometry(1,1,1,10);VM.arms=[0,1,2,3].map(i=>{const m=new THREE.Mesh(segGeo,GM.sleeve);VM.root.add(m);return m});
 const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_d=new THREE.Vector3(),UPV=new THREE.Vector3(0,1,0);
 function seg(mesh,a,b,r){_d.copy(b).sub(a);const L=_d.length();mesh.position.copy(a).addScaledVector(_d,.5);mesh.quaternion.setFromUnitVectors(UPV,_d.normalize());mesh.scale.set(r,L,r)}
-function buildVm(id,r){if(VM.model){VM.root.remove(VM.model.g)}VM.model=null;VM.id=id;if(r===undefined){const w=ME&&ME.slots?wpn(ME):null;r=w&&w.id===id?(w.r||0):0}VM.r=r;
+function buildVm(id,r){VM.gripHand.visible=true;for(const a of VM.arms)a.visible=true;if(VM.model){VM.root.remove(VM.model.g)}VM.model=null;VM.id=id;if(r===undefined){const w=ME&&ME.slots?wpn(ME):null;r=w&&w.id===id?(w.r||0):0}VM.r=r;
   if(!id){VM.root.add(VM.gripHand,VM.supHand);VM.gripHand.position.set(.12,-.13,-.28);VM.supHand.position.set(-.1,-.14,-.3);VM.gripHand.rotation.set(0,0,0);VM.supHand.rotation.set(.3,0,0);return}
   const vw=ME&&ME.slots?wpn(ME):null;const m=gunModel(id,false,VM.r,vw&&vw.id===id?sightW(vw):null);VM.model=m;VM.root.add(m.g);m.g.add(VM.gripHand,VM.supHand);
   VM.gripHand.position.copy(m.P.grip);VM.gripHand.rotation.set(m.P.gripRot,0,0);
@@ -1325,12 +1352,15 @@ function updateVm(dt,ek){const m=VM.model,g=m?m.g:null;VM.sprK+=((S.meRun?1:0)-V
   if(m.parts.pump){const p=since>.1&&since<.6?Math.sin((since-.1)/.5*Math.PI):0;m.parts.pump.position.z=m.base.pump.z+p*.085;if(rk<0)sup.position.z+=p*.085;rx+=p*.03}
   if(m.parts.bolt&&rk<0){const p=since>.25&&since<1?(since-.25)/.75:0,lift=vmS(p,0,.2)*(1-vmS(p,.75,1)),back=vmS(p,.2,.4)*(1-vmS(p,.55,.75));m.parts.bolt.rotation.z=lift*1.1;m.parts.bolt.position.z=m.base.bolt.z+back*.07;rz+=lift*.06}
   if(m.parts.slide){const lock=w&&w.id==='pistol'&&w.mag===0&&!(rk>.85);m.parts.slide.position.z=m.base.slide.z+(lock?.024:since<.07?.024*(1-since/.07):0)}
+  if(VM.id==='bow'&&m.parts.drawTo){const bk=S.bowK||0;rz-=.3*(1-ek)*(1-vmS(bk,0,.35));m.parts.drawTo(bk);m.parts.arrow.visible=ME.cool<=0;VM.gripHand.position.set(0,-.03,m.parts.nock.position.z+.06);pos.x-=bk*.02*(1-ek);
+    // aiming: the bow moves to the lower left and leans away so the centre of the screen stays clear; the drawing hand leaves the view
+    VM.gripHand.visible=ek<.5;if(m.parts.bsight)m.parts.bsight.visible=ek>.35}else VM.gripHand.visible=true
   g.position.copy(pos);g.rotation.set(rx,ry,rz,'YXZ');
   vmFlash.visible=S.flashT>0;if(vmFlash.visible){vmFlash.material.rotation=Math.random()*6.28;const s=.12+Math.random()*.08;vmFlash.scale.set(s,s,1)}
   // sleeves from each wrist to an elbow behind/below, then to the shoulder off screen
   VM.root.updateMatrixWorld(true);
   const arm=(hand,side,i)=>{hand.wrist.getWorldPosition(_a);const el=_b.set(_a.x+side*.07,_a.y-.17,_a.z+.2);seg(VM.arms[i],_a,el,.042);const sh=_d.set(side*.22,-.32,.3);seg(VM.arms[i+1],el,sh,.055)};
-  arm(VM.gripHand,1,0);arm(VM.supHand,-1,2)}
+  arm(VM.gripHand,1,0);arm(VM.supHand,-1,2);VM.arms[0].visible=VM.arms[1].visible=VM.gripHand.visible}
 function vmKick(W_){if(!VM.model)return;const k=VM.model.P.kick,a=1-.4*(S.adsK||0);VM.kz+=k[0]*a;VM.kr+=k[1]*a;VM.ky+=(Math.random()-.5)*k[1]*.25}
 
 // ---------- wearable gear and pickups: one set of procedural parts shared by the characters and the ground items ----------
@@ -1636,11 +1666,18 @@ function rollLoot(force){const r=force?0:Math.random();
   if(r<.55){const t=['light','light','shell','medium','medium','heavy'][(Math.random()*6)|0];return[{kind:'ammo',id:t,amt:t==='shell'?10:t==='heavy'?15:t==='medium'?40:45}]}
   if(r<.83){const q=Math.random();return[q<.34?{kind:'bandage',amt:Math.random()<.65?1:2}:q<.7?{kind:'cell',amt:Math.random()<.5?1:2}:q<.83?{kind:'medkit',amt:1}:{kind:'bat',amt:1}]}
   const lv=rollLv();return[{kind:'armor',lv,hp:VEST[lv].cap}]}
-const itemRar=it=>it.kind==='optic'?OPTICS[it.id].rk:it.kind==='weapon'?(it.r||0):(it.kind==='armor'||it.kind==='helmet')?it.lv-1:-1;
+const itemRar=it=>it.kind==='weapon'&&it.id==='bow'?3:it.kind==='optic'?OPTICS[it.id].rk:it.kind==='weapon'?(it.r||0):(it.kind==='armor'||it.kind==='helmet')?it.lv-1:-1;
 function spawnItem(it,x,z,y){it.x=x;it.z=z;if(y!==undefined)it.y=y;const rr=itemRar(it),g=new THREE.Group();let m;
   if(it.kind==='weapon'){m=gunLOD(it.id,it.r,it.optic);m.rotation.set(0,0,Math.PI/2);m.position.y=.035;g.add(m)}else g.add(itemModel(it));
   const glow=new THREE.Mesh(GLOWGEO,glowMat(rr));const gs=it.kind==='weapon'?1.1:it.kind==='armor'?.8:.6;glow.scale.set(gs,1,gs);glow.position.y=.012;g.add(glow);
   g.position.set(x,y!==undefined?y:groundY(x,z),z);g.rotation.y=Math.random()*6;world.add(g);it.mesh=g;ITEMS.push(it);return it}
+function placeBow(){const hs=HOUSES.filter(h=>!h.shed&&h.w>2&&h.h>2);for(let t=0;t<60&&hs.length;t++){const h=hs[(Math.random()*hs.length)|0],x=h.x+1+((Math.random()*(h.w-2))|0),y=h.y+1+((Math.random()*(h.h-2))|0);
+    if(grid[y][x]!=='f')continue;const c=ctr({x,y});spawnItem({kind:'weapon',id:'bow',r:0},c.x,c.z);return}
+  // fallback so every match has one: any indoor floor tile, else any open spot on the map
+  const fl=[];for(const h of HOUSES)for(let y=h.y;y<h.y+h.h;y++)for(let x=h.x;x<h.x+h.w;x++)if(grid[y]&&grid[y][x]==='f')fl.push({x,y});
+  if(fl.length){const c=ctr(fl[(Math.random()*fl.length)|0]);spawnItem({kind:'weapon',id:'bow',r:0},c.x,c.z);return}
+  for(let t=0;t<500;t++){const x=4+Math.random()*(W*T-8),z=4+Math.random()*(H*T-8);if(free(x,z,.4)){spawnItem({kind:'weapon',id:'bow',r:0},x,z);return}}
+  spawnItem({kind:'weapon',id:'bow',r:0},W*T/2,H*T/2)}
 function removeItem(it){const i=ITEMS.indexOf(it);if(i>=0)ITEMS.splice(i,1);world.remove(it.mesh)}
 function itemLabel(it){return it.kind==='optic'?OPTICS[it.id].n:it.kind==='weapon'?(it.r?RAR[it.r].n+'・':'')+WEAP[it.id].name+(it.optic?'＋'+OPTICS[it.optic].n:''):it.kind==='helmet'?`ヘルメット Lv${it.lv}（耐久${Math.round(it.hp)}/${HELM[it.lv].cap}）`:it.kind==='armor'?`シールド Lv${it.lv}（+${Math.round(it.hp)}/${VEST[it.lv].cap}）`:it.kind==='ammo'?`${AMMONAME[it.id]} ×${it.amt}`:it.kind==='bandage'?`包帯 ×${it.amt}`:it.kind==='medkit'?'救急キット':it.kind==='cell'?`シールドパッチ ×${it.amt}`:it.kind==='bat'?'シールドキット':'シールド'}
 function seedLoot(){ITEMS=[];
@@ -1698,7 +1735,7 @@ const DN=[],_dn=new THREE.Vector3();
 function dmgNum(a,val,kind){const el=document.createElement('div');el.className='dn '+kind;el.textContent=typeof val==='number'?Math.max(1,Math.round(val)):val;$('dmgs').appendChild(el);
   DN.push({el,x:a.x+(Math.random()-.5)*.5,y:(a.me?ME.y:AY(a))+(kind==='brk'?1.6:2.05),z:a.z,t:kind==='brk'?1.2:.85,T:kind==='brk'?1.2:.85});if(DN.length>16){const o=DN.shift();o.el.remove()}}
 // ---------- floating item names (near or looked at) and pickup toasts ----------
-const tagCol=it=>it.kind==='optic'?RAR[OPTICS[it.id].rk].c:it.kind==='weapon'?RAR[it.r||0].c:(it.kind==='armor'||it.kind==='helmet')?LVCOL[it.lv]:it.kind==='medkit'?'#e07a6a':it.kind==='cell'||it.kind==='bat'?'#5cc8ff':it.kind==='ammo'?'#d8c27a':'#e8e2d4';
+const tagCol=it=>it.kind==='weapon'&&it.id==='bow'?RAR[3].c:it.kind==='optic'?RAR[OPTICS[it.id].rk].c:it.kind==='weapon'?RAR[it.r||0].c:(it.kind==='armor'||it.kind==='helmet')?LVCOL[it.lv]:it.kind==='medkit'?'#e07a6a':it.kind==='cell'||it.kind==='bat'?'#5cc8ff':it.kind==='ammo'?'#d8c27a':'#e8e2d4';
 const TAGP=[],_tg=new THREE.Vector3();let tagN=0;
 function drawTags(){const box=$('tags');let used=0;cam.updateMatrixWorld();
   if(ME.alive&&!S.over){const w=cvEl.clientWidth,h=cvEl.clientHeight,cp=Math.cos(ME.pitch),fx=-Math.sin(ME.yaw)*cp,fy=Math.sin(ME.pitch),fz=-Math.cos(ME.yaw)*cp,ey=cam.position.y,cand=[];
@@ -1725,9 +1762,10 @@ const sfx={body:()=>{tone(1150,'triangle',.07,.05,900)},head:()=>{tone(1800,'sin
 // ---------- shooting ----------
 const _v=new THREE.Vector3();
 // an open (swung) door leaf stops bullets too; a closed one is part of the wall slab already
-function leafQ(d,x,z){const dx=x-d.cx,dz=z-d.cz,lx=d.ry?-dz:dx,lz=d.ry?dx:dz,px=lx+DOORW/2,pz=lz,a=-d.sgn*1.45*d.ang,ca=Math.cos(a),sa=Math.sin(a);return[px*ca-pz*sa,px*sa+pz*ca]}
+const DOORSW=1.75;
+function leafQ(d,x,z){const dx=x-d.cx,dz=z-d.cz,lx=d.ry?-dz:dx,lz=d.ry?dx:dz,px=lx+DOORW/2,pz=lz,a=-d.sgn*DOORSW*d.ang,ca=Math.cos(a),sa=Math.sin(a);return[px*ca-pz*sa,px*sa+pz*ca]}
 const leafOn=d=>!d.broken&&d.ang>.08&&d.cx!==undefined;
-function doorLeafAt(d,x,y,z){if(!leafOn(d)||y<d.pad||y>d.pad+DOORH)return false;const[qx,qz]=leafQ(d,x,z);return qx>-.02&&qx<DOORW+.02&&Math.abs(qz)<.08}
+function doorLeafAt(d,x,y,z){if(!leafOn(d)||y<d.pad||y>d.pad+DOORH)return false;const[qx,qz]=leafQ(d,x,z);return qx>-.02&&qx<DOORW+.02&&Math.abs(qz)<(d.ang>.95?.02:.08)}
 // a bullet step can jump over the thin leaf, so test the segment between two ray samples
 function doorLeafSeg(d,x0,z0,x1,z1,y){if(!leafOn(d)||y<d.pad||y>d.pad+DOORH)return false;const[a0,b0]=leafQ(d,x0,z0),[a1,b1]=leafQ(d,x1,z1);
   if((b0>.08&&b1>.08)||(b0<-.08&&b1<-.08))return false;const t=Math.abs(b1-b0)<1e-6?0:Math.min(1,Math.max(0,b0/(b0-b1))),qx=a0+(a1-a0)*t;return qx>-.02&&qx<DOORW+.02}
@@ -1765,7 +1803,7 @@ function rayHit(ox,oy,oz,dx,dy,dz,range,shooter,pierceGlass=true){
   return{t:range,end:{x:ox+dx*range,y:oy+dy*range,z:oz+dz*range}}}
 function gunSound(a,w){const v=a.me?1:vAt(a.x,a.z)*1.0;if(v<=0&&!a.me)return;const pan=a.me?0:panAt(a.x,a.z);burst(.55*Math.max(.05,v)*(w?1:.4),w?w.snd[1]:.08,w?w.snd[0]:500,pan);
   if(w&&a.me)tone(90,'square',.12,.08,50)}
-function fire(a){const w=wpn(a);if(S.t<15){if(a.me&&!S.graceMsg){S.graceMsg=1;say(`開始${Math.ceil(15-S.t)}秒後まで撃てない`)}return false}
+function fire(a){const w=wpn(a);if(S.t<15)return false;
   if(!w){// punch
     if(a.cool>0)return false;a.cool=.55;const fx=-Math.sin(a.yaw)*Math.cos(a.pitch),fz=-Math.cos(a.yaw)*Math.cos(a.pitch);
     for(const o of ALL){if(!o.alive||o===a)continue;const dx=o.x-a.x,dz=o.z-a.z,d=Math.hypot(dx,dz);if(d<1.6&&(dx*fx+dz*fz)/d>.5&&reach(a.x,a.z,o.x,o.z)){damage(o,15,a,'素手');if(a.me)S.hitMark=.25;break}}
@@ -1795,11 +1833,60 @@ function fire(a){const w=wpn(a);if(S.t<15){if(a.me&&!S.graceMsg){S.graceMsg=1;sa
   else botShoot(a,W_);
   if(!a.me){a.mesh.fl.visible=true;a.flashT=.05}
   shotPing(a);return true}
+// ---------- the bow ----------
+const ARROWS=[],ARS=110,ARG=1.5,ARROWM=new THREE.MeshBasicMaterial({color:0xff4a5a,fog:false}),ARROWG=(()=>{const g=cylZ(.006,.006,.7,5);return g})();
+function bowSound(a,draw){const v=a.me?1:vAt(a.x,a.z);if(v<=0)return;if(draw){tone(210,'sawtooth',.035*v,.3,150);return}tone(160,'triangle',.22*v,.16,60);burst(.18*v,.05,2600,a.me?0:panAt(a.x,a.z))}
+function bowTick(dt,hold){S.fireBuf=0;if(hold&&S.t<15){S.bowK=0;return}
+  const ok=hold&&ME.alive&&ME.healT<=0&&!S.vault&&!S.meRun&&ME.cool<=0;
+  if(ok){const k0=S.bowK||0;S.bowK=Math.min(1,k0+dt/1.0);if(k0===0)bowSound(ME,true);if(k0<1&&S.bowK>=1)tone(900,'sine',.04,.06)}
+  else{if(!hold&&(S.bowK||0)>=1)shootArrow(ME);S.bowK=0}}
+function shootArrow(a){cam.updateMatrixWorld();const o=new THREE.Vector3();cam.getWorldPosition(o);const sp=.004*(1-.75*(S.adsK||0))+(S.moveAmt||0)*.012+(S.air?.03:0);
+  const yaw=a.yaw+(Math.random()-.5)*2*sp,pit=a.pitch+(Math.random()-.5)*2*sp,dx=-Math.sin(yaw)*Math.cos(pit),dy=Math.sin(pit),dz=-Math.cos(yaw)*Math.cos(pit);
+  a.cool=WEAP.bow.iv;S.lastShot=S.t;S.recoil=.02;vmKick(WEAP.bow);bowSound(a);shotPing(a);
+  // instant hit: straight line, walls ignored, first body along it within range
+  const h=arrowRay(o.x,o.y,o.z,dx,dy,dz,WEAP.bow.range,a),e={x:o.x+dx*h.t,y:o.y+dy*h.t,z:o.z+dz*h.t};
+  VM.root.updateMatrixWorld(true);const muz=new THREE.Vector3();vmFlash.getWorldPosition(muz);muz.applyMatrix4(cam.matrixWorld);bowTrail(muz,e);
+  if(h.a)arrowHit({by:a},h.a,h.head);
+  if(NET.on){const q=v=>Math.round(v*100)/100,m={t:'arw',o:[q(muz.x),q(muz.y),q(muz.z)],e:[q(e.x),q(e.y),q(e.z)]};if(NET.host){m.a=a.i;bcast(m)}else netSend(m)}}
+function arrowRay(ox,oy,oz,dx,dy,dz,range,by){let best=null;
+  for(const a of ALL){if(!a.alive||a===by)continue;const ay=a.me&&ME.y!==undefined?ME.y:AY(a),px=a.x-ox,py=ay+1-oy,pz=a.z-oz,t=px*dx+py*dy+pz*dz;if(t<0||t>range)continue;
+    const qx=px-dx*t,qy=py-dy*t,qz=pz-dz*t;if(qx*qx+qy*qy+qz*qz>2.6)continue;
+    for(let u=Math.max(0,t-1.8);u<=Math.min(range,t+1.8);u+=.04){const part=bodyPart(a,ox+dx*u,oy+dy*u,oz+dz*u);if(part){if(!best||u<best.t)best={t:u,a,head:part===2};break}}}
+  return best||{t:range,a:null,head:false}}
+// a red streak along the shot that fades quickly
+const BOWTR=[];function bowTrail(a,b){const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,a.y,a.z),new THREE.Vector3(b.x,b.y,b.z)]),l=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xff3a4a,transparent:true,opacity:.9,fog:false}));
+  scene.add(l);BOWTR.push({l,t:.5})}
+function updateBowTrails(dt){for(let i=BOWTR.length-1;i>=0;i--){const r=BOWTR[i];r.t-=dt;r.l.material.opacity=Math.max(0,r.t/.5)*.9;if(r.t<=0){scene.remove(r.l);r.l.geometry.dispose();r.l.material.dispose();BOWTR.splice(i,1)}}}
+function spawnArrow(by,x,y,z,dx,dy,dz,real){const m=new THREE.Mesh(ARROWG,ARROWM);m.position.set(x,y,z);world.add(m);ARROWS.push({by,x,y,z,vx:dx*ARS,vy:dy*ARS,vz:dz*ARS,life:2.2,real,mesh:m})}
+function arrowFx(a,m){if(!a||!m.o||!m.e)return;bowSound(a);shotPing(a);bowTrail({x:m.o[0],y:m.o[1],z:m.o[2]},{x:m.e[0],y:m.e[1],z:m.e[2]})}
+// where on a body a point is: 2 = head, 1 = body, 0 = miss (same shapes as bullets use)
+function bodyPart(a,x,y,z){const ay=a.me&&ME.y!==undefined?ME.y:AY(a),dxa=x-a.x,dza=z-a.z,hd=Math.hypot(dxa,dza),st=stanceOf(a);
+  if(st==='prone'){const f=a.me?ME.yaw:a.face+Math.PI,fx=-Math.sin(f),fz=-Math.cos(f),al=dxa*fx+dza*fz,pe=Math.abs(dxa*fz-dza*fx);return al>-.2&&al<1.7&&pe<.3&&y>ay&&y<ay+.45?(al>1.35?2:1):0}
+  const hh=st==='crouch'?1.25:1.63,bt=st==='crouch'?1.12:1.5;if(hd<.17&&Math.abs(y-(ay+hh))<.16)return 2;if(hd<.33&&y>ay&&y<ay+bt)return 1;return 0}
+function updateArrows(dt){for(let i=ARROWS.length-1;i>=0;i--){const r=ARROWS[i];r.life-=dt;let done=r.life<=0;
+    if(!done){const sp=Math.hypot(r.vx,r.vy,r.vz),n=Math.max(1,Math.ceil(sp*dt/.1)),h=dt/n;
+      const near=r.real?ALL.filter(a=>a.alive&&a!==r.by&&Math.hypot(a.x-r.x,a.z-r.z)<sp*dt+3):[];
+      for(let k=0;k<n&&!done;k++){r.x+=r.vx*h;r.y+=r.vy*h;r.z+=r.vz*h;r.vy-=ARG*h;
+        for(const a of near){const part=bodyPart(a,r.x,r.y,r.z);if(!part)continue;done=true;arrowHit(r,a,part===2);break}}}
+    if(done){if(r.mesh.parent)r.mesh.parent.remove(r.mesh);ARROWS.splice(i,1);continue}
+    r.mesh.position.set(r.x,r.y,r.z);r.mesh.lookAt(r.x-r.vx,r.y-r.vy,r.z-r.vz)}}
+function arrowHit(r,v,head){const a=r.by,res=damage(v,head?200:50,a,WEAP.bow.name,head,false);if(!a||!a.me)return;
+  S.hitMark=.2;S.hitHead=head;if(res){dmgNum(v,res.dmg+res.abs,res.abs>.5&&!head?'a':head?'h':'b');S.hitArmor=res.abs>0}if(head)sfx.head();else if(res&&res.abs>0)sfx.armor();else sfx.body()}
+// while the bow is held, every living enemy is drawn again on top of everything in translucent red
+const XRAYM=new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:.6,fog:false}),XRAYS=new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:.6,fog:false,skinning:true}),XRL=[];
+function xray(){const w=ME&&ME.alive&&!SPEC.on?wpn(ME):null;if(!w||w.id!=='bow')return;XRL.length=0;
+  for(const a of ALL){if(a.me||!a.alive||!a.mesh||!a.mesh.g||!a.mesh.g.visible)continue;
+    a.mesh.g.traverse(o=>{if(o.isMesh&&o.material&&o.material!==SOLINVIS&&o.material.visible!==false&&o.layers.test(cam.layers))XRL.push(o)})}
+  if(!XRL.length)return;
+  // each mesh is drawn again with a plain red material of its own kind (skinned or not) so it keeps its pose; depth is cleared so walls do not hide it
+  const mk=cam.layers.mask,bg=scene.background,old=XRL.map(o=>o.material);for(const o of XRL){o.material=o.isSkinnedMesh?XRAYS:XRAYM;o.layers.enable(5)}
+  cam.layers.set(5);scene.background=null;R.autoClear=false;
+  try{R.clearDepth();R.render(scene,cam)}finally{R.autoClear=true;scene.background=bg;cam.layers.mask=mk;XRL.forEach((o,k)=>{o.material=old[k];o.layers.disable(5)})}}
 function mySpread(W_){const k=S.adsK||0,mv=S.moveAmt,air=S.air?1:0,pr=S.prone?.55:(S.crouch&&!S.slide)?.8:1;if(W_.id==='shotgun')return W_.spread*(1-.25*k)*(1+air*.5)*pr;
   const hip=W_.scope?.045:W_.spread*W_.hip,ads=W_.spread*(W_.scope?.15:.55);return (hip+(ads-hip)*k)*(1+mv*W_.mv+air*1.5)*pr+(S.bloom||0)}
 function shotPing(a){if(!a.me&&Math.hypot(a.x-ME.x,a.z-ME.z)<70)S.pings.push({x:a.x,z:a.z,t:2.5});
   for(const b of BOTS){if(!b.alive||b===a||b.enemy)continue;const d=Math.hypot(b.x-a.x,b.z-a.z);if(d<45&&b.mode!=='fight'){b.heard={x:a.x,z:a.z};b.heardT=4}}}
-function startReload(a){const w=wpn(a);if(!w)return;const W_=WEAP[w.id];if(a.reloadT>0||w.mag>=wMag(w)||a.ammo[W_.ammo]<=0)return;if(W_.perShell){a.shellRun=true;a.reloadT=a.reloadTot=W_.open+wReload(w)}else{a.shellRun=false;a.reloadT=a.reloadTot=wReload(w)}if(a.me){tone(300,'square',.04,.05);S.ads=false}}
+function startReload(a){const w=wpn(a);if(!w)return;const W_=WEAP[w.id];if(W_.inf)return;if(a.reloadT>0||w.mag>=wMag(w)||a.ammo[W_.ammo]<=0)return;if(W_.perShell){a.shellRun=true;a.reloadT=a.reloadTot=W_.open+wReload(w)}else{a.shellRun=false;a.reloadT=a.reloadTot=wReload(w)}if(a.me){tone(300,'square',.04,.05);S.ads=false}}
 function finishReload(a){const w=wpn(a);if(!w)return;const W_=WEAP[w.id];if(W_.perShell){if(a.ammo[W_.ammo]>0&&w.mag<wMag(w)){w.mag++;a.ammo[W_.ammo]--;if(a.me)tone(420,'square',.035,.04)}
     if(w.mag<wMag(w)&&a.ammo[W_.ammo]>0){a.reloadT=a.reloadTot=wReload(w)}else{a.shellRun=false;if(a.me)tone(560,'square',.05,.05)}return}
   a.shellRun=false;const need=wMag(w)-w.mag,take=Math.min(need,a.ammo[W_.ammo]);w.mag+=take;a.ammo[W_.ammo]-=take;if(a.me)tone(500,'square',.05,.05)}
@@ -1869,7 +1956,7 @@ function seedCoverLoot(){
     for(const[x,z]of c.deck.ground)put(rollLoot(Math.random()<.5),x,z,c.deck.gy);
     const am=()=>{const t=['light','medium','medium','shell','heavy'][(Math.random()*5)|0];return{kind:'ammo',id:t,amt:t==='shell'?10:t==='heavy'?10:t==='medium'?30:36}};
     const sp=c.deck.ground[0]||c.deck.spots[0];if(sp)put([am()],sp[0]+.6,sp[1]+.3,c.deck.ground[0]?c.deck.gy:c.deck.base);if(c.deck.spots[0])put([am()],c.deck.spots[0][0]-.6,c.deck.spots[0][1]-.3,c.deck.base)}}
-function wantItem(b,it){if(it.y!==undefined||it.noBot)return false;if(it.kind==='weapon'){const worst=b.slots.reduce((m,s)=>Math.min(m,wScore(s)),99);return wScore(it)>worst&&!b.slots.some(s=>s&&s.id===it.id&&(s.r||0)>=(it.r||0))}
+function wantItem(b,it){if(it.y!==undefined||it.noBot||it.id==='bow')return false;if(it.kind==='weapon'){const worst=b.slots.reduce((m,s)=>Math.min(m,wScore(s)),99);return wScore(it)>worst&&!b.slots.some(s=>s&&s.id===it.id&&(s.r||0)>=(it.r||0))}
   if(it.kind==='armor')return it.lv>b.armorLv||(it.lv===b.armorLv&&b.armor<VEST[it.lv].cap*.5);if(it.kind==='helmet')return it.lv>b.helmLv||(it.lv===b.helmLv&&b.helm<HELM[it.lv].cap*.5);
   if(it.kind==='bandage')return b.band<4;if(it.kind==='medkit')return b.med<1;if(it.kind==='cell')return b.cell<4;if(it.kind==='bat')return b.bat<1;if(it.kind==='ammo')return b.slots.some(s=>s&&WEAP[s.id].ammo===it.id)&&b.ammo[it.id]<90;return false}
 function botPick(b,it){if(!ITEMS.includes(it))return;if(it.kind==='weapon'){if(b.slots.every(s=>s))b.cur=b.slots.reduce((m,s,i)=>wScore(s)<wScore(b.slots[m])?i:m,0);const dr=giveWeapon(b,it.id,it.r,it.optic);if(dr)spawnItem({kind:'weapon',id:dr.id,r:dr.r||0},b.x,b.z);b.cur=bestSlot(b);b.ammo[WEAP[it.id].ammo]+=WEAP[it.id].mag}
@@ -2009,7 +2096,7 @@ function myPickCandidate(){let best=null,bd=1e9;const fx=-Math.sin(ME.yaw),fz=-M
   return best}
 function myUse(c){if(!c)return;
   if(c.type==='item'){const it=c.it;
-    if(it.kind==='weapon'){const dr=giveWeapon(ME,it.id,it.r,it.optic);if(dr)spawnItem({kind:'weapon',id:dr.id,r:dr.r||0,optic:dr.optic||null},ME.x,ME.z);toast(it,'を拾った')}
+    if(it.kind==='weapon'){const dr=giveWeapon(ME,it.id,it.r,it.optic);if(dr)spawnItem({kind:'weapon',id:dr.id,r:dr.r||0,optic:dr.optic||null},ME.x,ME.z);toast(it,'を拾った');if(it.id==='bow')say('持っている間は壁の向こうの敵が赤く見える。左クリック長押しで引き、離して撃つ')}
     else if(it.kind==='optic'){const t=opticTarget(it.id);if(!t){say('この照準器を付けられる武器を持っていない');return}
       if(t.optic)spawnItem({kind:'optic',id:t.optic},ME.x+.4,ME.z);t.optic=it.id;if(t===wpn(ME))buildVm(t.id,t.r||0);say(`${OPTICS[it.id].n}を${WEAP[t.id].name}に付けた`,1.5)}
     else if(it.kind==='armor'||it.kind==='helmet'){const isV=it.kind==='armor',lv=isV?ME.armorLv:ME.helmLv,hp=isV?ME.armor:ME.helm;
@@ -2087,7 +2174,13 @@ cvEl.addEventListener('contextmenu',e=>e.preventDefault());
 
 document.addEventListener('mousemove',e=>{if(HW.open){healWheelMove(e.movementX,e.movementY);return}if(document.pointerLockElement===cvEl)look(e.movementX,e.movementY,.0012)});
 document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement===cvEl)locked=true;else if(locked&&!S.over&&$('overlay').hidden){locked=false;paused=true;$('pause').hidden=false}});
-$('resume').addEventListener('click',()=>{paused=false;$('pause').hidden=true;lockPointer()});
+$('resume').addEventListener('click',()=>{paused=false;$('pause').hidden=true;lockPointer();homeArm=false;$('gohome').textContent='ホームに戻る'});
+// back to the start screen; online it leaves the room, so it asks once more first
+let homeArm=false;
+$('gohome').addEventListener('click',()=>{if(NET.on&&!homeArm){homeArm=true;$('gohome').textContent=NET.host?'もう一度押すと部屋を閉じて戻る':'もう一度押すと部屋から抜けて戻る';return}
+  homeArm=false;$('gohome').textContent='ホームに戻る';paused=false;$('pause').hidden=true;if(typeof SPEC!=='undefined'){SPEC.on=false;const sb=$('specbar');if(sb)sb.hidden=true}
+  if(NET.on){netReset();return}
+  if(ME)S.over=true;$('stage').classList.remove('playing');$('overlay').hidden=false;$('card').innerHTML=START_HTML;bindStart()});
 
 // ---------- audio ----------
 let ac=null;
@@ -2104,6 +2197,9 @@ const step=(v,pan)=>burst(v,.05,400,pan),glass=(v=1,pan)=>{if(v>0){burst(.4*v,.4
 // ---------- HUD ----------
 let msgT=0;function say(s,t=2.2){$('msg').textContent=s;$('msg').style.opacity=1;msgT=t}
 const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+// countdown at the top while nobody can shoot yet
+function graceUi(){let el=$('grace');if(!el){el=document.createElement('div');el.id='grace';$('stage').appendChild(el)}
+  const left=15-(S.t||0),on=!!ME&&!S.over&&!SPEC.on&&left>0&&$('stage').classList.contains('playing');el.hidden=!on;$('stage').classList.toggle('grace',on);if(on)el.textContent=`開始まで ${Math.ceil(left)}`}
 function hud(){const alive=ALL.filter(a=>a.alive).length;$('alive').textContent=alive;$('kills').textContent=ME.kills;
   $('hpbar').style.width=Math.max(0,ME.hp)+'%';const gk=[ME.armorLv,Math.ceil(ME.armor),ME.helmLv,Math.ceil(ME.helm)].join();if(gk!==hud.gk){hud.gk=gk;
     const tile=(kind,lv,hp,cap,nm)=>{const n=kind==='armor'&&lv?lv:1,seg=Array.from({length:n},(_,k)=>{const f=lv?Math.max(0,Math.min(1,(hp-k*cap/n)/(cap/n))):0;return`<i><s style="width:${(f*100).toFixed(0)}%"></s></i>`}).join('');
@@ -2113,10 +2209,10 @@ function hud(){const alive=ALL.filter(a=>a.alive).length;$('alive').textContent=
   const zt=Z.state==='wait'?`安全地帯が縮むまで <b>${fmt(Z.t)}</b>`:Z.state==='shrink'?`<b class="warn">縮小中</b> ${fmt(Z.t)}`:'<b class="warn">最終局面</b>';
   const nz=nextZ(),zdx=nz.x-ME.x,zdz=nz.z-ME.z,zd=Math.hypot(zdx,zdz)-nz.r;const zarr=zd>0&&ME.alive?`<br>次の安全地帯まで <span class="zarr" style="transform:rotate(${(ME.yaw-Math.atan2(-zdx,-zdz)).toFixed(2)}rad)">▲</span> <b>${Math.round(zd)}m</b>`:'';
   $('zone').innerHTML=zt+zarr+(outZone(ME)?`<br><b class="warn">安全地帯の外！ 毎秒${Z.dps}ダメージ</b>`:'');
-  ME.slots.forEach((s,i)=>{const el=$('slot'+i);el.classList.toggle('on',i===ME.cur);el.style.borderLeft=s?`3px solid ${RAR[s.r||0].c}`:'';el.innerHTML=s?`<i>${i+1}</i>${WEAP[s.id].name}${s.optic?`<small class="opt">${OPTICS[s.optic].s}</small>`:''}<b>${s.mag}<small>/${ME.ammo[WEAP[s.id].ammo]}</small></b>`:`<i>${i+1}</i><span>空き</span>`});
+  ME.slots.forEach((s,i)=>{const el=$('slot'+i);el.classList.toggle('on',i===ME.cur);el.style.borderLeft=s?`3px solid ${RAR[s.id==='bow'?3:s.r||0].c}`:'';el.innerHTML=s?`<i>${i+1}</i>${WEAP[s.id].name}${s.optic?`<small class="opt">${OPTICS[s.optic].s}</small>`:''}<b>${WEAP[s.id].inf?'∞':`${s.mag}<small>/${ME.ammo[WEAP[s.id].ammo]}</small>`}</b>`:`<i>${i+1}</i><span>空き</span>`});
   $('heals').textContent=`回復［F］ 包帯${ME.band}・救急${ME.med}・Sパッチ${ME.cell}・Sキット${ME.bat}`;
 
-  const w=wpn(ME);$('ammo').innerHTML=ME.healT>0?(ME.healKind==='med'?'救急キット使用中…':ME.healKind==='cell'?'シールドパッチを使っている…':ME.healKind==='bat'?'シールドキットを使っている…':'包帯を巻いている…'):w?`<em>${WEAP[w.id].name}</em>${w.mag}<small> / ${ME.ammo[WEAP[w.id].ammo]}</small>`:'素手'}
+  const w=wpn(ME);$('ammo').innerHTML=ME.healT>0?(ME.healKind==='med'?'救急キット使用中…':ME.healKind==='cell'?'シールドパッチを使っている…':ME.healKind==='bat'?'シールドキットを使っている…':'包帯を巻いている…'):w&&w.id==='bow'?`<em>${WEAP.bow.name}</em>∞${S.bowK>0?`<small> ${S.bowK>=1?'離して撃つ':'引いている '+Math.round(S.bowK*100)+'%'}</small>`:''}`:w?`<em>${WEAP[w.id].name}</em>${w.mag}<small> / ${ME.ammo[WEAP[w.id].ammo]}</small>`:'素手'}
 const mc=$('map').getContext('2d');let mapBase=null;
 function drawMap(){const s=Math.min(240/W,176/H);
   if(!mapBase){mapBase=document.createElement('canvas');mapBase.width=240;mapBase.height=176;const b=mapBase.getContext('2d');b.fillStyle='#0b0d10';b.fillRect(0,0,240,176);
@@ -2135,9 +2231,10 @@ S={};
 function startGame(){
   try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
   if(NET.client)return;NET.live=false;const seed=(Math.random()*1e9)|0;setupWorld(seed);
-  seedLoot();seedCoverLoot();initZone();if(NET.host)netSendInit(seed);
+  seedLoot();seedCoverLoot();placeBow();initZone();if(NET.host)netSendInit(seed);
   showDrop()}
 function setupWorld(seed){
+  for(const r of ARROWS)if(r.mesh.parent)r.mesh.parent.remove(r.mesh);ARROWS.length=0;
   if(typeof SPEC!=='undefined'){SPEC.on=false;SPEC.a=null;const sb=$('specbar');if(sb)sb.hidden=true}
   ME=null;genMap(SIZE,seed);grid=BASE.map(r=>r.split(''));doors=new Map();wins=new Map();drawers=new Map();closets=[];floors=[];cols=new Map();DOORP=new Map();
   S={recap:[],t:0,over:false,cans:[],pings:[],hurt:0,hitMark:0,killMark:0,recoil:0,ads:false,moveAmt:0,flashT:0,vy:0,jumpY:0,useT:null,vault:null};
@@ -2307,7 +2404,7 @@ function tick(dt){S.t+=dt;if(!NET.client)updateZone(dt);
   if(ME.healT>0){if(btn.fire&&wpn(ME)){ME.healT=0;say('回復を中断した')}else{ME.healT-=dt;if(ME.healT<=0){const cap=ME.armorLv?VEST[ME.armorLv].cap:0;if(ME.healKind==='med'){ME.med--;ME.hp=100}else if(ME.healKind==='cell'){ME.cell--;ME.armor=Math.min(cap,ME.armor+25)}else if(ME.healKind==='bat'){ME.bat--;ME.armor=cap}else{ME.band--;ME.hp=Math.min(75,ME.hp+25)}say(ME.healKind==='cell'||ME.healKind==='bat'?'シールドを回復した':'回復した');tone(600,'sine',.08,.3,900)}}}
   const w=wpn(ME),trig=btn.fire||S.fireBuf>0;
   if(trig&&w&&ME.reloadT>0&&w.mag>0){ME.reloadT=0} // pulling the trigger with rounds left cancels the reload
-  if(trig&&ME.healT<=0&&!S.vault&&S.stanceT<=0&&!S.meRun){const did=fire(ME);if(did){S.fireBuf=0;if(!w||!WEAP[w.id].auto)btn.fire=false}}
+  if(w&&w.id==='bow')bowTick(dt,btn.fire);else{S.bowK=0;if(trig&&ME.healT<=0&&!S.vault&&S.stanceT<=0&&!S.meRun){const did=fire(ME);if(did){S.fireBuf=0;if(!w||!WEAP[w.id].auto)btn.fire=false}}}
   // use
   const cand=S.useT?null:myPickCandidate();$('hint').textContent=S.useT?'開けている…':useLabel(cand);
   if(tap.use){tap.use=false;if(!S.useT)myUse(cand)}
@@ -2318,9 +2415,9 @@ function tick(dt){S.t+=dt;if(!NET.client)updateZone(dt);
   for(const p of S.pings)p.t-=dt;S.pings=S.pings.filter(p=>p.t>0);
   for(const f of feed)f.life-=dt;if(feed.length&&feed[feed.length-1].life<=0){feed.pop();renderFeed()}
   if(msgT>0){msgT-=dt;if(msgT<=0)$('msg').style.opacity=0}
-  hudT-=dt;if(hudT<=0){hudT=.12;hud()}}
+  hudT-=dt;if(hudT<=0){hudT=.12;hud()}graceUi()}
 function render(now,dt){
-  for(const d of doors.values()){if(!d.pivot)continue;const tg=(d.open||d.broken)?1:0;d.ang+=(tg-d.ang)*.25;d.pivot.rotation.y=-d.sgn*1.45*d.ang;d.panel.visible=!d.broken;d.planks.visible=false}
+  for(const d of doors.values()){if(!d.pivot)continue;const tg=(d.open||d.broken)?1:0;d.ang+=(tg-d.ang)*.25;d.pivot.rotation.y=-d.sgn*DOORSW*d.ang;d.panel.visible=!d.broken;d.planks.visible=false}
   for(const dr of drawers.values())if(dr.pull){const tz=dr.opened?.32:0;dr.pull.position.z+=(tz-dr.pull.position.z)*.2}
   for(const it of ITEMS){const near=Math.abs(it.x-ME.x)<45&&Math.abs(it.z-ME.z)<45;it.mesh.visible=near;if(near)it.mesh.children[it.mesh.children.length-1].visible=ME.alive}
   S.frameN=(S.frameN||0)+1;botVisuals(now,dt);
@@ -2349,7 +2446,7 @@ function render(now,dt){
   $('dir').style.opacity=S.hurtT>0?Math.min(1,S.hurtT):0;$('dir').style.transform=`rotate(${(-(S.hurtDir||0)+ME.yaw+Math.PI)}rad)`;
   $('storm').style.opacity=outZone(ME)&&ME.alive?.55:0;
   S.brkT=Math.max(0,(S.brkT||0)-dt);$('hit').classList.toggle('arm',!!S.hitArmor&&S.hitMark>0);$('hit').classList.toggle('brk',S.brkT>0);
-  drawDmgNums(dt);drawTags();updateVeg(cam.position.x,cam.position.z);linearize(scene);linearize(vmScene);R.render(scene,cam);
+  drawDmgNums(dt);drawTags();updateVeg(cam.position.x,cam.position.z);updateArrows(dt);updateBowTrails(dt);linearize(scene);linearize(vmScene);R.render(scene,cam);xray();
   if(vmOn){vmCam.aspect=cam.aspect;vmCam.fov=cam.aspect<1?64:54;vmCam.updateProjectionMatrix();R.autoClear=false;R.clearDepth();R.render(vmScene,vmCam);R.autoClear=true}
   drawMap()}
 
@@ -2363,7 +2460,7 @@ function bindStart(){$('start').onclick=startGame;bindSens();bindSights();$$('.s
 // and reports it, so the feel stays local. Damage to a player is applied on that player's machine.
 const NET={noCpu:false,on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
   applying:false,noKill:false,fx:null,hold:{},sT:0,pT:0,invT:0,wsT:0,lastWS:'',byI:[],code:''};
-const NETPFX='dusk-sf-',NETVER='45';
+const NETPFX='dusk-sf-',NETVER='47';
 const r2=v=>Math.round(v*100)/100;
 function peerOpts(){const q=new URLSearchParams(location.search),ps=q.get('ps');if(!ps)return{debug:1};const[h,pt]=ps.split(':');return{host:h,port:+pt||9000,path:'/',secure:false,debug:1}}
 function netSend(m){if(NET.conn&&NET.conn.open)try{rawSend(NET.conn,m)}catch(_){}}
@@ -2429,6 +2526,7 @@ function hostRecv(c,m){
     if(m.w){if(!a.slots[a.cur]||a.slots[a.cur].id!==m.w)a.slots[a.cur]={id:m.w,r:m.wr||0,optic:m.wo||null,mag:1}}else a.slots[a.cur]=null;if(m.inv)applyInv(a,m.inv);return}
   if(m.t==='shot'){const W_=WEAP[m.w];if(!W_)return;gunSound(a,W_);for(let k=0;k+5<m.tr.length;k+=6)tracer({x:m.tr[k],y:m.tr[k+1],z:m.tr[k+2]},{x:m.tr[k+3],y:m.tr[k+4],z:m.tr[k+5]});
     a.mesh.fl.visible=true;a.flashT=.05;shotPing(a);bcast({t:'fx',a:a.i,w:m.w,tr:m.tr},c);return}
+  if(m.t==='arw'){if(!a||!a.alive)return;arrowFx(a,m);bcast(Object.assign({},m,{a:a.i}),c);return}
   if(m.t==='hit'){const v=NET.byI[m.v];if(!v||!v.alive||!a.alive)return;damage(v,m.d,a,m.wn,m.h);return}
   if(m.t==='dead'){if(!a.alive)return;applyInv(a,m.inv);a.hp=0;a.remote=true;kill(a,m.by>=0?NET.byI[m.by]:null,m.wn);return}
   if(m.t==='take'){const it=ITEMS.find(i=>i.nid===m.n);if(it)removeItem(it);return}
@@ -2459,6 +2557,7 @@ function clientRecv(m){
   if(m.t==='go'){clientGo(m);return}
   if(!ME||!ALL.length)return;
   if(m.t==='s'){clientSnap(m);return}
+  if(m.t==='arw'){const a=NET.byI[m.a];if(!a||a.me)return;arrowFx(a,m);return}
   if(m.t==='fx'){const a=NET.byI[m.a];if(!a||a.me)return;const W_=WEAP[m.w];if(W_)gunSound(a,W_);for(let k=0;k+5<m.tr.length;k+=6)tracer({x:m.tr[k],y:m.tr[k+1],z:m.tr[k+2]},{x:m.tr[k+3],y:m.tr[k+4],z:m.tr[k+5]});
     if(a.mesh){a.mesh.fl.visible=true;a.flashT=.05}shotPing(a);
     if(ME.alive&&m.tr.length>=6){const ox=m.tr[0],oz=m.tr[2],ex=m.tr[3]-ox,ez=m.tr[5]-oz,el=Math.hypot(ex,ez)||1,mx=ME.x-ox,mz=ME.z-oz,al=(mx*ex+mz*ez)/el;if(al>2&&al<el+2&&Math.abs(mx*ez-mz*ex)/el<2.5){S.whiz=.2;burst(.08,.05,3000,panAt(a.x,a.z))}}return}

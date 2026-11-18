@@ -3,7 +3,7 @@
 // and reports it, so the feel stays local. Damage to a player is applied on that player's machine.
 const NET={noCpu:false,on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
   applying:false,noKill:false,fx:null,hold:{},sT:0,pT:0,invT:0,wsT:0,lastWS:'',byI:[],code:''};
-const NETPFX='dusk-sf-',NETVER='45';
+const NETPFX='dusk-sf-',NETVER='47';
 const r2=v=>Math.round(v*100)/100;
 function peerOpts(){const q=new URLSearchParams(location.search),ps=q.get('ps');if(!ps)return{debug:1};const[h,pt]=ps.split(':');return{host:h,port:+pt||9000,path:'/',secure:false,debug:1}}
 function netSend(m){if(NET.conn&&NET.conn.open)try{rawSend(NET.conn,m)}catch(_){}}
@@ -69,6 +69,7 @@ function hostRecv(c,m){
     if(m.w){if(!a.slots[a.cur]||a.slots[a.cur].id!==m.w)a.slots[a.cur]={id:m.w,r:m.wr||0,optic:m.wo||null,mag:1}}else a.slots[a.cur]=null;if(m.inv)applyInv(a,m.inv);return}
   if(m.t==='shot'){const W_=WEAP[m.w];if(!W_)return;gunSound(a,W_);for(let k=0;k+5<m.tr.length;k+=6)tracer({x:m.tr[k],y:m.tr[k+1],z:m.tr[k+2]},{x:m.tr[k+3],y:m.tr[k+4],z:m.tr[k+5]});
     a.mesh.fl.visible=true;a.flashT=.05;shotPing(a);bcast({t:'fx',a:a.i,w:m.w,tr:m.tr},c);return}
+  if(m.t==='arw'){if(!a||!a.alive)return;arrowFx(a,m);bcast(Object.assign({},m,{a:a.i}),c);return}
   if(m.t==='hit'){const v=NET.byI[m.v];if(!v||!v.alive||!a.alive)return;damage(v,m.d,a,m.wn,m.h);return}
   if(m.t==='dead'){if(!a.alive)return;applyInv(a,m.inv);a.hp=0;a.remote=true;kill(a,m.by>=0?NET.byI[m.by]:null,m.wn);return}
   if(m.t==='take'){const it=ITEMS.find(i=>i.nid===m.n);if(it)removeItem(it);return}
@@ -99,6 +100,7 @@ function clientRecv(m){
   if(m.t==='go'){clientGo(m);return}
   if(!ME||!ALL.length)return;
   if(m.t==='s'){clientSnap(m);return}
+  if(m.t==='arw'){const a=NET.byI[m.a];if(!a||a.me)return;arrowFx(a,m);return}
   if(m.t==='fx'){const a=NET.byI[m.a];if(!a||a.me)return;const W_=WEAP[m.w];if(W_)gunSound(a,W_);for(let k=0;k+5<m.tr.length;k+=6)tracer({x:m.tr[k],y:m.tr[k+1],z:m.tr[k+2]},{x:m.tr[k+3],y:m.tr[k+4],z:m.tr[k+5]});
     if(a.mesh){a.mesh.fl.visible=true;a.flashT=.05}shotPing(a);
     if(ME.alive&&m.tr.length>=6){const ox=m.tr[0],oz=m.tr[2],ex=m.tr[3]-ox,ez=m.tr[5]-oz,el=Math.hypot(ex,ez)||1,mx=ME.x-ox,mz=ME.z-oz,al=(mx*ex+mz*ez)/el;if(al>2&&al<el+2&&Math.abs(mx*ez-mz*ex)/el<2.5){S.whiz=.2;burst(.08,.05,3000,panAt(a.x,a.z))}}return}
