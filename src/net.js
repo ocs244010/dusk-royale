@@ -3,7 +3,7 @@
 // and reports it, so the feel stays local. Damage to a player is applied on that player's machine.
 const NET={noCpu:false,on:false,host:false,client:false,peer:null,conn:null,conns:[],lobby:[],name:'',myI:0,nid:0,live:false,done:false,
   applying:false,noKill:false,fx:null,hold:{},sT:0,pT:0,invT:0,wsT:0,lastWS:'',byI:[],code:''};
-const NETPFX='dusk-sf-';
+const NETPFX='dusk-sf-',NETVER='44';
 const r2=v=>Math.round(v*100)/100;
 function peerOpts(){const q=new URLSearchParams(location.search),ps=q.get('ps');if(!ps)return{debug:1};const[h,pt]=ps.split(':');return{host:h,port:+pt||9000,path:'/',secure:false,debug:1}}
 function netSend(m){if(NET.conn&&NET.conn.open)try{NET.conn.send(m)}catch(_){}}
@@ -46,7 +46,7 @@ function netJoin(code){if(!/^[A-Z0-9]{5}$/.test(code)){netInfo('<p class="netwar
   netInfo('<p class="netdim">部屋につないでいる…</p>');const peer=new Peer(undefined,peerOpts());NET.peer=peer;
   peer.on('open',()=>{const c=peer.connect(NETPFX+code,{reliable:true,serialization:'json'});NET.conn=c;
     const to=setTimeout(()=>{if(!NET.on){netInfo('<p class="netwarn">部屋が見つからない。コードが合っているか、ホストが部屋を開いたままか確認してください。</p>');try{peer.destroy()}catch(_){}}},12000);
-    c.on('open',()=>{clearTimeout(to);Object.assign(NET,{on:true,client:true,host:false});c.send({t:'hello',name:NET.name})});
+    c.on('open',()=>{clearTimeout(to);Object.assign(NET,{on:true,client:true,host:false});c.send({t:'hello',name:NET.name,v:NETVER})});
     c.on('data',clientRecv);c.on('close',()=>{if(NET.client)netReset('ホストとの接続が切れた。')})});
   peer.on('error',e=>{netInfo(`<p class="netwarn">${e.type==='peer-unavailable'?'部屋が見つからない。コードを確かめてください。':'つなげなかった（'+esc(e.type||e)+'）'}</p>`)})}
 function netLobbyCast(){if(NET.host)bcast({t:'lobby',l:NET.lobby.map(p=>p.name),code:NET.code,size:SIZE,nc:NET.noCpu})}
@@ -56,7 +56,7 @@ function hostDrop(c){const i=NET.conns.indexOf(c);if(i<0)return;NET.conns.splice
 
 // ---------- host side ----------
 function hostRecv(c,m){
-  if(m.t==='hello'){if(NET.lobby.length>=4){sendTo(c,{t:'deny',why:'満員（4人まで）'});return}if(DROP||NET.inMatch){sendTo(c,{t:'deny',why:'試合中。終わってから入ってください'});return}
+  if(m.t==='hello'){if(m.v!==NETVER){sendTo(c,{t:'deny',why:`ゲームの版が違う（ホスト：${NETVER}／あなた：${m.v||'古い版'}）。Ctrl+Shift+Rで読み込み直してから入ってください`});return}if(NET.lobby.length>=4){sendTo(c,{t:'deny',why:'満員（4人まで）'});return}if(DROP||NET.inMatch){sendTo(c,{t:'deny',why:'試合中。終わってから入ってください'});return}
     NET.conns.push(c);NET.lobby.push({name:String(m.name||'').slice(0,10)||'ゲスト',conn:c});netLobbyCast();
     if(!$('overlay').hidden&&!DROP){netInfo(lobbyHtml());netLobbyUi()}return}
   const a=c.actor;

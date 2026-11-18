@@ -2,6 +2,8 @@
 使い方: VS Code のターミナルで  python build.py
 """
 from pathlib import Path
+def FB(test,url):
+    return "<script>(" + test + ")||document.write('<script src=\"" + url + "\"><\\/script>')</script>\n"
 D = Path(__file__).parent
 S = D / "src"
 head = (S / "br_head.html").read_text(encoding="utf8")
@@ -12,7 +14,7 @@ ERRBOX = """<script>
 (function(){var seen={},n=0;function show(m){var key=String(m).split('\\n')[0];if(seen[key]||n>=3)return;seen[key]=1;n++;var d=document.getElementById('errbox');if(!d){d=document.createElement('div');d.id='errbox';d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#3a0d12;color:#ffd6d6;border:1px solid #ff6b6b;border-radius:6px;padding:10px 12px;font:13px/1.5 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto';(document.body||document.documentElement).appendChild(d);d.textContent='エラーが出ました（×で閉じられます）。この文章をそのままClaudeに送ってください。\\n\\n';var x=document.createElement('button');x.textContent='×';x.style.cssText='position:absolute;top:4px;right:6px;background:none;border:0;color:#ffd6d6;font-size:18px;cursor:pointer';x.onclick=function(){d.remove()};d.appendChild(x);setTimeout(function(){if(d.parentNode)d.remove()},20000)}d.appendChild(document.createTextNode(m+'\\n'))}
 window.addEventListener('error',function(e){if(!e.message)return;show((e.message||'error')+(e.filename?'  ('+e.filename.split('/').pop()+':'+e.lineno+':'+e.colno+')':'')+(e.error&&e.error.stack?'\\n'+e.error.stack.split('\\n').slice(0,4).join('\\n'):''))},true);
 window.addEventListener('unhandledrejection',function(e){show('Promise: '+(e.reason&&(e.reason.stack||e.reason.message)||e.reason))});
-window.addEventListener('load',function(){setTimeout(function(){if(typeof THREE==='undefined')show('three.js が読み込めていません（lib フォルダがあるか確認）');else{try{var c=document.createElement('canvas');if(!(c.getContext('webgl2')||c.getContext('webgl')))show('このブラウザ／表示ではWebGLが使えません。ChromeやEdgeで開いてください');}catch(x){}}},500)});
+window.addEventListener('load',function(){setTimeout(function(){if(typeof THREE==='undefined')show('three.js が読み込めていません（GitHubに lib フォルダごと上がっているか確認。ネット接続も確認）');else{try{var c=document.createElement('canvas');if(!(c.getContext('webgl2')||c.getContext('webgl')))show('このブラウザ／表示ではWebGLが使えません。ChromeやEdgeで開いてください');}catch(x){}}},500)});
 })();
 </script>
 """
@@ -21,10 +23,15 @@ html = (
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
     + ERRBOX
     + head
+    # if the lib folder is missing or blocked, fall back to the same versions from a CDN
     + '<script src="lib/three.min.js"></script>\n'
+    + FB('window.THREE','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
     + '<script src="lib/GLTFLoader.js"></script>\n'
+    + FB('window.THREE&&THREE.GLTFLoader','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js')
     + '<script src="lib/SkeletonUtils.js"></script>\n'
+    + FB('window.THREE&&THREE.SkeletonUtils','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js')
     + '<script src="lib/peerjs.min.js"></script>\n'
+    + FB('window.Peer','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js')
     + "<script>\n" + glb + "</script>\n"
     + "<script>\n(()=>{\n" + engine + game + "</script>\n"
     # Live Server inserts its reload script just before </body>; without it, it picks an </svg> inside the game code and breaks it
